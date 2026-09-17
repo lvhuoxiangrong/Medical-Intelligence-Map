@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>循证知识图谱 · 医生端</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230A211C'/%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%2314B8A6' stroke-width='3.5'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%2314B8A6'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@300;400;500;600&display=swap">
+<style>
+:root{
+  --bg:#EEF2EE;
+  --panel:#FFFFFF;
+  --ink:#17241F;
+  --ink-2:#3E4F47;
+  --muted:#6B7A72;
+  --line:#DCE3DD;
+  --dark:#0A211C;
+  --teal:#0F766E;
+  --teal-2:#14B8A6;
+  --teal-3:#5EEAD4;
+  --lit:#1D6FD1;
+  --pat:#E8871E;
+  --guide:#0E9F6E;
+  --fb:#D64545;
+  --serif:"Noto Serif SC","Songti SC","STSong",Georgia,serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --shadow:0 1px 2px rgba(10,33,28,.05),0 10px 30px rgba(10,33,28,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden}
+button{font-family:inherit;cursor:pointer}
+::selection{background:rgba(20,184,166,.22)}
+
+/* ===== 顶栏 ===== */
+.topbar{flex:none;background:var(--dark);color:#fff;display:flex;align-items:center;gap:16px;padding:0 22px;height:58px;box-shadow:0 1px 0 rgba(255,255,255,.06)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:14.5px;white-space:nowrap}
+.brand .sub{font-size:11px;color:rgba(255,255,255,.45);font-weight:400;margin-left:2px}
+.top-meta{margin-left:auto;display:flex;align-items:center;gap:10px}
+.pat-chip{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:99px;padding:5px 13px;font-size:12px;color:rgba(255,255,255,.8)}
+.pat-chip b{color:#fff;font-weight:600}
+.pat-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--teal-3);box-shadow:0 0 0 3px rgba(94,234,212,.15)}
+.graph-status{font-size:11px;color:var(--teal-3);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.graph-status::before{content:"";width:7px;height:7px;border-radius:50%;background:#4ADE80;box-shadow:0 0 0 3px rgba(74,222,128,.15)}
+.back-link{color:rgba(255,255,255,.55);font-size:12px;padding:6px 12px;border:1px solid rgba(255,255,255,.15);border-radius:8px;transition:.2s;text-decoration:none}
+.back-link:hover{color:#fff;border-color:rgba(255,255,255,.4)}
+
+/* ===== 主体 ===== */
+.main{flex:1;display:flex;min-height:0}
+.chat-col{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+.chat-head{flex:none;display:flex;align-items:center;gap:11px;padding:12px 24px;border-bottom:1px solid var(--line);background:var(--panel)}
+.ch-ava{flex:none;width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#0F766E,#115E59);color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(15,118,110,.3)}
+.chat-head .ch-title{font-size:13.5px;font-weight:600}
+.chat-head .ch-sub{font-size:11.5px;color:var(--muted)}
+.chat-head .ch-tip{margin-left:auto;font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.chat-head .ch-tip::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--teal-2)}
+
+/* 消息区 */
+.msg-area{flex:1;overflow-y:auto;padding:22px 24px 12px;display:flex;flex-direction:column;gap:18px;scroll-behavior:smooth}
+.conv-start{align-self:center;display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);background:var(--bg);border:1px dashed var(--line);border-radius:99px;padding:5px 14px;flex:none}
+.msg{display:flex;gap:11px;max-width:860px}
+.msg.user{margin-left:auto;flex-direction:row-reverse}
+.ava{flex:none;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;margin-top:2px}
+.msg.user .ava{background:var(--teal)}
+.msg.ai .ava{background:var(--dark)}
+.bubble{min-width:0}
+.msg.user .bubble{background:var(--teal);color:#fff;border-radius:14px 4px 14px 14px;padding:11px 15px;font-size:14px;line-height:1.7;box-shadow:0 2px 10px rgba(15,118,110,.18);white-space:pre-wrap}
+.msg.user .m-meta{flex-direction:row-reverse}
+.m-meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);margin-bottom:5px}
+.m-meta .who{font-weight:600;color:var(--ink-2)}
+.m-meta .tm{color:#98A6A0}
+.msg.user .m-meta .who{color:var(--teal)}
+
+/* AI 回答卡片 */
+.ai-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;animation:rise .35s ease}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.ai-card .ac-head{display:flex;align-items:center;gap:9px;padding:12px 18px;background:linear-gradient(90deg,rgba(15,118,110,.07),transparent 70%);border-bottom:1px solid var(--line)}
+.ai-card .ac-head .ac-ic{width:20px;height:20px;border-radius:6px;background:rgba(15,118,110,.14);color:var(--teal);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.ai-card .ac-head .ac-name{font-size:13px;font-weight:600}
+.ai-card .ac-head .ac-tag{margin-left:auto;font-size:11px;color:var(--muted)}
+.ai-card .ac-body{padding:16px 18px 14px}
+.ai-answer{font-size:14px;color:var(--ink-2);line-height:1.85}
+.ai-answer b{color:var(--ink)}
+/* 建议行：黄色渐变 + 漂浮强调 */
+.ai-advice{margin-top:12px;display:flex;align-items:center;gap:9px;padding:11px 15px;border-radius:12px;border:1px solid rgba(230,162,30,.5);background:linear-gradient(135deg,#FFF8D9,#FFEBA4 55%,#FFDF78);color:#6B4E00;font-size:13.5px;font-weight:600;line-height:1.65;box-shadow:0 5px 18px rgba(230,162,30,.32);position:relative;overflow:hidden;animation:advFloat 2.6s ease-in-out infinite}
+.ai-advice .adv-ic{flex:none;width:22px;height:22px;border-radius:50%;background:#C77E00;color:#FFF6D9;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(199,126,0,.4)}
+.ai-advice::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);transform:translateX(-100%);animation:advShine 3.2s ease-in-out infinite}
+@keyframes advFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes advShine{0%,60%{transform:translateX(-100%)}85%,100%{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){.ai-advice{animation:none}.ai-advice::after{animation:none}}
+.ai-answer .plan{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.plan-row{display:flex;gap:10px;align-items:baseline;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 13px;font-size:13px;color:var(--ink-2)}
+.plan-row .pr-no{flex:none;width:26px;height:26px;border-radius:50%;background:#fff;border:1.5px solid var(--teal-2);color:var(--teal);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;align-self:center}
+.plan-row.top .pr-no{background:var(--teal);border-color:var(--teal);color:#fff}
+.plan-row .pr-name{flex:none;width:150px;font-weight:600;color:var(--ink)}
+.plan-row .pr-w{flex:none;font-family:Consolas,monospace;font-size:12px;color:var(--teal)}
+.plan-row .pr-note{font-size:12px;color:var(--muted)}
+.plan-row .pr-warn{color:var(--fb);font-weight:600}
+/* 方案可点击：展开该方案论据分布 */
+.plan-row{cursor:pointer;transition:.15s}
+.plan-row:hover{border-color:var(--teal-2);box-shadow:0 1px 6px rgba(15,118,110,.08)}
+.plan-row.open{border-color:var(--teal-2);background:rgba(20,184,166,.05)}
+.plan-row .pr-arrow{margin-left:auto;flex:none;font-size:10px;color:var(--muted);transition:transform .2s}
+.plan-row.open .pr-arrow{transform:rotate(180deg);color:var(--teal)}
+.opt-ev{display:none;border:1px solid var(--line);border-top:none;border-radius:0 0 9px 9px;background:var(--panel);padding:4px 12px 12px;margin-top:-1px}
+.opt-ev.open{display:block;animation:rise .25s ease}
+.opt-ev .oe-head{display:flex;align-items:center;gap:8px;padding:10px 2px 2px;font-size:12px;font-weight:600;color:var(--ink)}
+.opt-ev .oe-head .oe-sub{font-size:10.5px;color:var(--muted);font-weight:400}
+.opt-ev .ev-chart{height:170px;padding:10px 12px 0;gap:20px}
+.opt-ev .ev-legend{padding:2px 2px 6px;font-size:10.5px;gap:12px}
+.opt-ev .ev-sources{padding:8px 0 2px;border-top:1px dashed var(--line);background:transparent}
+.opt-ev .ev-src-btn{padding:7px 10px}
+.opt-ev .ev-list ul{padding:6px 9px 8px}
+
+/* 解释图谱 */
+.ev-section{margin-top:16px;border:1px solid var(--line);border-radius:12px;background:var(--bg);overflow:hidden}
+.ev-title-bar{display:flex;align-items:center;gap:9px;padding:11px 15px;border-bottom:1px solid var(--line);background:var(--panel)}
+.ev-title-bar .ev-ic{width:20px;height:20px;border-radius:6px;background:rgba(29,111,209,.12);color:var(--lit);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.ev-title-bar .ev-name{font-size:13px;font-weight:600}
+.ev-title-bar .ev-sub{font-size:11px;color:var(--muted)}
+.ev-chart{height:235px;padding:16px 20px 0;display:flex;align-items:stretch;justify-content:space-around;gap:28px}
+.ev-bar{flex:1;max-width:130px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
+.ev-bar .bv{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:6px}
+.ev-bar .bl{width:100%;border-radius:8px 8px 0 0;background:var(--bc,#0F766E);min-height:3px;box-shadow:inset 0 -8px 14px rgba(0,0,0,.08);transition:height .6s cubic-bezier(.22,.61,.36,1)}
+.ev-bar .bn{font-size:12px;color:#5A6B63;margin-top:9px;white-space:nowrap}
+.ev-bar .bl::after{content:"";display:block;height:4px;border-radius:8px 8px 0 0;background:rgba(255,255,255,.22)}
+.ev-legend{display:flex;gap:16px;padding:4px 16px 8px;font-size:11.5px;color:var(--muted);flex-wrap:wrap}
+.ev-legend .lg{display:inline-flex;align-items:center;gap:6px}
+.ev-legend .dot{width:9px;height:9px;border-radius:3px}
+.ev-sources{display:flex;flex-direction:column;gap:6px;padding:12px 14px 14px;border-top:1px solid var(--line);background:var(--panel)}
+.ev-src-btn{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 12px;cursor:pointer;font-size:12px;transition:.15s;user-select:none}
+.ev-src-btn:hover{border-color:var(--teal-2)}
+.ev-src-btn.open{border-color:var(--teal-2);background:rgba(20,184,166,.06)}
+.ev-src-btn .es-tag{width:9px;height:9px;border-radius:3px;flex:none}
+.ev-src-btn .es-name{font-weight:600;color:var(--ink)}
+.ev-src-btn .es-cnt{font-size:10.5px;color:var(--muted)}
+.ev-src-btn .es-pct{margin-left:auto;font-size:12.5px;font-weight:700}
+.ev-src-btn .es-arrow{flex:none;font-size:10px;color:var(--muted);transition:transform .2s}
+.ev-src-btn.open .es-arrow{transform:rotate(180deg);color:var(--teal)}
+.ev-list{display:none}
+.ev-list.open{display:block;animation:rise .25s ease}
+.ev-list ul{list-style:none;border:1px solid var(--line);border-top:none;border-radius:0 0 9px 9px;background:var(--bg);padding:7px 10px 9px;margin-top:-1px}
+.ev-list li{display:flex;align-items:flex-start;gap:6px;font-size:11.5px;color:var(--ink-2);padding:5px 4px;line-height:1.55;flex-wrap:wrap}
+.ev-list li.ev-it{cursor:pointer;border-radius:6px;transition:background .15s}
+.ev-list li.ev-it:hover{background:rgba(20,184,166,.08)}
+.ev-list li .evd{flex:none;font-size:9.5px;padding:1px 6px;border-radius:5px;margin-top:2px;font-weight:600}
+.ev-list li .ev-t{flex:1;min-width:130px}
+.ev-list li .ev-brief{flex:0 0 100%;font-size:10.5px;color:var(--muted);line-height:1.6;padding-left:2px;margin-top:-2px}
+.ev-list li .ev-go{margin-left:auto;flex:none;font-size:9.5px;color:#98A6A0;align-self:center;transition:color .15s;padding-left:8px}
+.ev-list li.ev-it:hover .ev-go{color:var(--teal)}
+.evd.sup{background:rgba(14,159,110,.12);color:#0E7A54}
+.evd.atk{background:rgba(214,69,69,.1);color:#B33434}
+.evd.ref{background:rgba(15,118,110,.1);color:var(--teal)}
+.ev-foot{padding:0 14px 12px;font-size:10.5px;color:#98A6A0;display:flex;gap:14px;flex-wrap:wrap}
+.ev-foot span{display:inline-flex;align-items:center;gap:5px}
+.ev-foot i{font-style:normal;width:7px;height:7px;border-radius:50%;display:inline-block}
+
+/* 输入区 */
+.input-area{flex:none;border-top:1px solid var(--line);background:var(--panel);padding:12px 24px 16px}
+.examples{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.ex-chip{font-size:12px;color:var(--ink-2);background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:6px 13px;transition:.2s}
+.ex-chip:hover{border-color:var(--teal-2);color:var(--teal);background:rgba(20,184,166,.06)}
+.input-row{display:flex;gap:10px;align-items:flex-end}
+.input-row textarea{flex:1;resize:none;border:1px solid var(--line);border-radius:12px;padding:11px 15px;font-family:inherit;font-size:13.5px;color:var(--ink);background:var(--bg);outline:none;min-height:46px;max-height:120px;line-height:1.6;transition:border-color .2s}
+.input-row textarea:focus{border-color:var(--teal-2);background:#fff}
+.send-btn{flex:none;height:46px;padding:0 22px;border:none;border-radius:12px;background:var(--teal);color:#fff;font-size:13.5px;font-weight:600;transition:.2s}
+.send-btn:hover{background:#0D635C}
+.send-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ===== 右侧信息栏 ===== */
+.side-resizer{flex:none;width:9px;cursor:col-resize;position:relative;z-index:5}
+.side-resizer::before{content:"";position:absolute;left:4px;top:0;bottom:0;width:1px;background:transparent;transition:background .15s}
+.side-resizer:hover::before,.side-resizer.active::before{background:rgba(15,118,110,.5)}
+.side-resizer.collapsed{cursor:pointer}
+.side-resizer.collapsed::before{background:var(--line);width:2px;left:3px}
+.side-resizer.collapsed:hover::before{background:var(--teal-2);width:3px;left:3px}
+body.resizing{user-select:none;cursor:col-resize}
+body.resizing iframe{pointer-events:none}
+body.resizing .side{transition:none}
+.side{flex:none;width:318px;border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0;transition:width .18s ease}
+.side.collapsed{width:0!important;border-left:none;overflow:hidden}
+.side-fold{margin-left:auto;border-bottom:2px solid transparent!important}
+@media (max-width:900px){.side-resizer{display:none}.side-fold{display:none}.side{transition:none}}
+.side-tabs{flex:none;display:flex;gap:4px;padding:10px 14px 0;border-bottom:1px solid var(--line);background:var(--panel)}
+.st{font-size:12px;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;padding:8px 12px;font-weight:500;border-radius:8px 8px 0 0;transition:.15s}
+.st:hover{color:var(--ink-2)}
+.st.active{color:var(--teal);border-bottom-color:var(--teal-2);background:rgba(15,118,110,.06);font-weight:600}
+.side-pane{display:none}
+.side-pane.active{display:block}
+.side-scroll{flex:1;overflow-y:auto;padding:16px}
+.side-title{font-size:12px;font-weight:600;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.side-title::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--teal-2)}
+.patient-card{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:15px;margin-bottom:14px}
+.patient-card .pc-name{font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:8px}
+.patient-card .pc-name .pc-id{font-size:10.5px;color:var(--muted);font-weight:400}
+.patient-card .pc-meta{margin-top:7px;font-size:12px;color:var(--ink-2);line-height:1.8}
+.patient-card .pc-meta b{font-weight:600;color:var(--ink)}
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+.kpi .k-lab{font-size:10.5px;color:var(--muted)}
+.kpi .k-val{font-size:14.5px;font-weight:700;font-family:var(--serif)}
+.kpi .k-val small{font-size:10.5px;color:var(--muted);font-weight:400;margin-left:2px}
+.kpi.warn .k-val{color:var(--fb)}
+.side-block{margin-bottom:14px}
+.side-block h5{font-size:11.5px;font-weight:600;color:var(--muted);margin-bottom:8px;letter-spacing:.05em}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px}
+.t-tag{font-size:11px;padding:3px 9px;border-radius:7px;background:var(--bg);border:1px solid var(--line);color:var(--ink-2)}
+.t-tag.flag{background:rgba(214,69,69,.08);border-color:rgba(214,69,69,.3);color:#B33434}
+.t-tag.hl{background:rgba(15,118,110,.09);border-color:rgba(15,118,110,.3);color:var(--teal)}
+.side-note{font-size:11px;color:var(--muted);line-height:1.7;background:var(--bg);border:1px dashed var(--line);border-radius:10px;padding:10px 12px}
+.side-note b{color:var(--ink-2)}
+.side-demo{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);font-size:11px;color:#98A6A0;line-height:1.7}
+
+/* ---- 论据详情面板 ---- */
+.evd-empty{text-align:center;padding:34px 14px;color:var(--muted);font-size:12px;line-height:1.8;border:1px dashed var(--line);border-radius:12px}
+.evd-empty-ic{width:42px;height:42px;border-radius:12px;background:rgba(20,184,166,.1);color:var(--teal-2);font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+.evd-card{border:1px solid var(--line);border-radius:14px;background:var(--bg);overflow:hidden;animation:rise .3s ease}
+.evd-card .ed-head{display:flex;align-items:center;gap:8px;padding:11px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.evd-card .ed-tag{width:10px;height:10px;border-radius:3px;flex:none}
+.evd-card .ed-name{font-size:12.5px;font-weight:600}
+.evd-card .ed-badge{margin-left:auto;font-size:10px;padding:2px 8px;border-radius:6px;font-weight:600}
+.ed-badge.sup{background:rgba(14,159,110,.12);color:#0E7A54}
+.ed-badge.atk{background:rgba(214,69,69,.1);color:#B33434}
+.ed-badge.ref{background:rgba(15,118,110,.1);color:var(--teal)}
+.evd-card .ed-body{padding:14px}
+.ed-title{font-size:14px;font-weight:700;color:var(--ink);line-height:1.55;margin-bottom:8px}
+.ed-content{font-size:12.5px;color:var(--ink-2);line-height:1.8;margin-bottom:12px}
+.ed-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px}
+.ed-meta span{font-size:10.5px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:2px 9px}
+.ed-sub{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.06em;margin:2px 0 7px}
+.ed-links{display:flex;flex-direction:column;gap:7px;margin-bottom:13px}
+.ed-link{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--teal);text-decoration:none;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 11px;transition:.15s;word-break:break-all}
+.ed-link:hover{border-color:var(--teal-2);background:rgba(20,184,166,.05)}
+.ed-link .ln-ic{flex:none;width:22px;height:22px;border-radius:7px;background:rgba(29,111,209,.1);color:var(--lit);font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.ed-link .ln-t{flex:1;min-width:0}
+.ed-link .ln-u{display:block;font-size:9.5px;color:#98A6A0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ed-link .ln-go{flex:none;font-size:12px;color:var(--teal-2)}
+
+/* ---- 证据快照（演示） ---- */
+.shot{border:1px solid var(--line);border-radius:11px;background:var(--panel);overflow:hidden;box-shadow:0 1px 0 rgba(10,33,28,.04)}
+.shot-bar{display:flex;align-items:center;gap:7px;padding:7px 11px;background:var(--dark);}
+.shot-bar .sb-dot{width:7px;height:7px;border-radius:50%;background:var(--teal-2)}
+.shot-bar .sb-t{font-size:10px;color:rgba(255,255,255,.75);letter-spacing:.08em;font-weight:600}
+.shot-bar .sb-tag{margin-left:auto;font-size:9px;color:rgba(94,234,212,.9);border:1px solid rgba(94,234,212,.35);border-radius:99px;padding:1px 7px}
+.shot-body{padding:11px 13px;background:#FBFDFB;font-size:11.5px;color:var(--ink-2);line-height:1.7}
+.shot .sl-j{font-size:10px;color:var(--lit);font-weight:600;margin-bottom:3px}
+.shot .sl-t{font-size:12.5px;font-weight:700;color:var(--ink);line-height:1.5;margin-bottom:4px}
+.shot .sl-a{font-size:10.5px;color:var(--muted);margin-bottom:6px}
+.shot .sl-x{font-size:11px;color:var(--ink-2);border-left:2px solid rgba(29,111,209,.3);padding-left:8px;margin-bottom:7px}
+.shot .sl-m{font-size:9.5px;color:#98A6A0;font-family:Consolas,monospace}
+.shot-conv .sc-row{display:flex;gap:8px;margin-bottom:8px;font-size:11.5px}
+.shot-conv .sc-row:last-of-type{margin-bottom:6px}
+.shot-conv .sc-who{flex:none;width:26px;height:26px;border-radius:50%;background:var(--teal);color:#fff;font-size:10.5px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.shot-conv .sc-row.md .sc-who{background:var(--dark)}
+.shot-conv .sc-row p{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:6px 9px;color:var(--ink-2)}
+.shot-conv .sc-meta{font-size:9.5px;color:#98A6A0}
+.shot-net .sn-top{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.shot-net .sn-ava{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--pat),#F6B44E);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.shot-net .sn-name{font-size:11.5px;font-weight:600;color:var(--ink)}
+.shot-net .sn-time{margin-left:auto;font-size:9.5px;color:#98A6A0}
+.shot-net .sn-txt{font-size:12px;color:var(--ink-2);line-height:1.75;margin-bottom:7px}
+.shot-net .sn-like{font-size:10px;color:var(--muted)}
+
+/* 响应式 */
+@media (max-width:1080px){
+  .side{width:270px}
+  .plan-row .pr-name{width:120px}
+}
+@media (max-width:900px){
+  body{overflow:auto;height:auto;min-height:100%}
+  .main{flex-direction:column;min-height:0}
+  .chat-col{flex:none}
+  .msg-area{max-height:46vh;min-height:220px}
+  .side{width:auto;border-left:none;border-top:1px solid var(--line)}
+  .side-scroll{display:block}
+  #panePat.active{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+  #panePat.active .patient-card{grid-column:1/-1}
+}
+@media (max-width:640px){
+  .topbar{padding:0 14px;gap:10px}
+  .pat-chip{display:none}
+  .msg-area{padding:14px}
+  .input-area{padding:10px 14px 12px}
+  .ev-chart{height:210px}
+  .side-scroll{display:block}
+  .plan-row{flex-wrap:wrap}
+  .plan-row .pr-name{flex:none;width:auto}
+  .back-link span{display:none}
+  .back-link{padding:8px 12px;min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center}
+  .ex-chip{min-height:44px;display:inline-flex;align-items:center}
+  .st{min-height:44px;display:inline-flex;align-items:center}
+  body{font-size:16px}
+  .input-row textarea{font-size:16px}
+  .chat-head .ch-sub{font-size:12.5px}
+  .m-meta{font-size:12px}
+  .ai-card .ac-tag{font-size:11.5px}
+  .ev-src li{font-size:12px}
+  .ev-foot{font-size:11px}
+  #panePat.active{display:block}
+}
+</style>
+</head>
+<body>
+
+<!-- JSON 加载失败提示条（正常加载时隐藏） -->
+<div id="jsonNotice" style="display:none;position:fixed;top:58px;left:0;right:0;z-index:90;background:#FDE8E8;color:#7F1D1D;border-bottom:1px solid #F3C1C1;padding:9px 22px;font-size:12.5px;line-height:1.6"></div>
+
+<!-- ===== 顶栏 ===== -->
+<header class="topbar">
+  <div class="brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#14B8A6" stroke-width="1.6"/><circle cx="12" cy="12" r="3.2" fill="#14B8A6"/><path d="M12 5.5v-2.6M12 21v-2.6M5.5 12H2.9M21 12h-2.6" stroke="#5EEAD4" stroke-width="1.6" stroke-linecap="round"/></svg>
+    循证知识图谱 <span class="sub">医生端 · 决策辅助</span>
+  </div>
+  <div class="top-meta">
+    <span class="pat-chip"><span class="dot"></span>当前患者：<b>T2DM 合并 CKD 3b</b> · eGFR 35 · HbA1c 8.2%</span>
+    <span class="graph-status" id="jsonStatus">知识图谱已挂载 · 论据加载中…</span>
+    <a class="back-link" href="index.html">← <span>系统总览</span></a>
+    <a class="back-link" href="数据浏览.html">数据浏览</a>
+  </div>
+</header>
+
+<div class="main">
+  <!-- ===== 聊天区 ===== -->
+  <div class="chat-col">
+    <div class="chat-head">
+      <div class="ch-ava">证</div>
+      <div>
+        <div class="ch-title">应用反馈智能体</div>
+        <div class="ch-sub">在线 · 循证知识图谱已挂载 · 正在与医生会话</div>
+      </div>
+      <div class="ch-tip">医生端 · 示例数据</div>
+    </div>
+
+    <div class="msg-area" id="msgArea">
+      <div class="conv-start"><span class="cs-dot"></span>会话已建立 · 医生 × 应用反馈智能体 · 患者 #PT-0317</div>
+    </div>
+
+    <div class="input-area">
+      <div class="examples" id="examples"></div>
+      <div class="input-row">
+        <textarea id="qaInput" rows="1" placeholder="输入临床问题，Enter 发送…"></textarea>
+        <button class="send-btn" id="sendBtn">发送</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 右侧信息栏：患者画像 / 论据详情（可拖拽调宽 / 折叠） ===== -->
+  <div class="side-resizer" id="sideResizer" title="拖动调整右侧栏宽度，点击展开"></div>
+  <aside class="side" id="sidePanel">
+    <div class="side-tabs">
+      <button class="st active" data-tab="pat">患者画像</button>
+      <button class="st" data-tab="evd">论据详情</button>
+      <button class="st side-fold" id="sideFold" title="收起右侧栏">«</button>
+    </div>
+    <div class="side-scroll">
+      <div class="side-pane active" id="panePat">
+        <div class="side-title">当前患者</div>
+        <div class="patient-card">
+          <div class="pc-name">患者 · 58 岁男性 <span class="pc-id">#PT-0317</span></div>
+          <div class="pc-meta">主诊断：<b>2 型糖尿病</b> + <b>CKD 3b 期</b><br>现用药：<b>二甲双胍 1000mg bid</b> · 血糖控制不佳</div>
+          <div class="kpi-grid">
+            <div class="kpi warn"><div class="k-lab">eGFR</div><div class="k-val">35<small>mL/min</small></div></div>
+            <div class="kpi warn"><div class="k-lab">HbA1c</div><div class="k-val">8.2<small>%</small></div></div>
+            <div class="kpi"><div class="k-lab">BMI</div><div class="k-val">30<small>kg/m²</small></div></div>
+            <div class="kpi"><div class="k-lab">病程</div><div class="k-val">8<small>年</small></div></div>
+          </div>
+        </div>
+
+        <div class="side-block">
+          <h5>关键病史 / 偏好</h5>
+          <div class="tag-list">
+            <span class="t-tag flag">反复泌尿道感染（年 3-4 次）</span>
+            <span class="t-tag flag">晕针史</span>
+            <span class="t-tag">农村医保 · 经济顾虑</span>
+          </div>
+        </div>
+
+        <div class="side-block">
+          <h5>会话约束</h5>
+          <div class="side-note">AI 只引用<b>图谱论据</b>与<b>本会话发言</b>；证据不足时标注「缺口」，不补全、不编造。</div>
+        </div>
+      </div>
+
+      <div class="side-pane" id="paneEvd">
+        <div class="evd-empty" id="evdEmpty">
+          <div class="evd-empty-ic">论</div>
+          <div>点击左侧解释图谱下方任一论据，<br>此处显示论据详情：链接、证据快照与溯源信息。</div>
+        </div>
+        <div id="evdBody"></div>
+      </div>
+
+      <div class="side-demo">原型演示：4 组示例问答为演示数据，解释图谱百分比为模拟论据构成。</div>
+    </div>
+  </aside>
+</div>
+
+<script>
+/* ============================================================
+   示例问答数据（演示）
+   ============================================================ */
+var QAS = [
+  {
+    id:"qa0",
+    q: "T2DM 合并 CKD 3b，eGFR 35，HbA1c 8.2%，二甲双胍 1000mg bid，血糖控制不佳，下一步怎么调整？",
+    a: "沿图谱「治疗强化」场景检索到 4 个候选方案，按权重 W 排序如下：",
+    plans: [
+      {no:"1", name:"加用 SGLT2i", w:"W=0.830", top:true, note:"DAPA-CKD 试验肾脏保护 A 级证据 · eGFR 35 在适用范围（≥20）",
+       ev:{lit:46, conv:28, net:26},
+       items:{lit:[{t:"DAPA-CKD 试验 · 肾脏保护", d:"支撑", k:"sup"},{t:"ADA 2025 CKD 章节 · A 级推荐", d:"支撑", k:"sup"},{t:"ADA 指南 · 心衰住院后继续 SGLT2i（A 级）", d:"支撑", k:"sup", evId:"gf-17"},{t:"ADA 指南 · 无禁忌可启动/继续 SGLT2i", d:"支撑", k:"sup", evId:"gf-14"}],
+              conv:[{t:"相似病例 · 加用 SGLT2i 后血糖达标", d:"支撑", k:"sup"},{t:"历史采纳 · 该人群监测计划", d:"参考", k:"ref"}],
+              net:[{t:"患者体验 · 集采后费用可负担", d:"支撑", k:"sup"},{t:"患者顾虑 · 长期用药恐惧", d:"攻击", k:"atk"}]}},
+      {no:"2", name:"加用 GLP-1", w:"W=0.755", note:"LEADER 试验支持 · 皮下注射 · 监测胃肠道反应",
+       ev:{lit:38, conv:34, net:28},
+       items:{lit:[{t:"LEADER 试验 · 心血管获益", d:"支撑", k:"sup", evId:"qa0-op2-lit-0"}],
+              conv:[{t:"相似病例 · GLP-1 注射耐受良好", d:"支撑", k:"sup", evId:"qa0-op2-conv-0"}],
+              net:[{t:"患者反馈 · 注射不便与胃肠道反应", d:"攻击", k:"atk", evId:"qa0-op2-net-0"}]}},
+      {no:"3", name:"加大二甲双胍", w:"W=0.480", note:"eGFR 35 时日剂量已超 1500mg 上限，需先减量再评估",
+       ev:{lit:32, conv:40, net:28},
+       items:{lit:[{t:"说明书 · eGFR<45 需减量/停用", d:"否决", k:"atk", evId:"qa0-op3-lit-0"},{t:"ADA 指南 · 非危重 T2DM 可用 DPP-4i（更安全简单）", d:"参考", k:"ref", evId:"gf-13"}],
+              conv:[{t:"医患讨论 · 二甲双胍减量方案", d:"参考", k:"ref", evId:"qa0-op3-conv-0"}],
+              net:[{t:"患者讨论 · 肾功能与二甲双胍", d:"攻击", k:"atk", evId:"qa0-op3-net-0"}]}},
+      {no:"4", name:"加用基础胰岛素", w:"W=0.470", note:"CKD 患者低血糖风险升高，需强化监测",
+       ev:{lit:26, conv:44, net:30},
+       items:{lit:[{t:"CKD 低血糖风险研究", d:"支撑", k:"sup", evId:"qa0-op4-lit-0"},{t:"ADA 指南 · 危重症血糖目标 140-180（避免强化）", d:"支撑", k:"sup", evId:"gf-1"},{t:"ADA 指南 · 标准低血糖预防管理方案", d:"支撑", k:"sup", evId:"gf-15"},{t:"ADA 指南 · 低血糖<70 审查并调整方案", d:"支撑", k:"sup", evId:"gf-18"}],
+              conv:[{t:"医生 · 低血糖强化监测计划", d:"参考", k:"ref", evId:"qa0-op4-conv-0"}],
+              net:[{t:"患者分享 · 低血糖经历", d:"攻击", k:"atk", evId:"qa0-op4-net-0"}]}}
+    ],
+    tail: "建议优先与患者讨论方案 1，并同步安排 eGFR 与泌尿感染监测。",
+    ev: {lit:46, conv:28, net:26},
+    items: {
+      lit: [
+        {t:"DAPA-CKD 试验 · 肾脏保护", d:"支撑", k:"sup"},
+        {t:"ADA 2025 CKD 章节 · A 级推荐", d:"支撑", k:"sup"},
+        {t:"探索性亚组分析", d:"否决", k:"atk"}
+      ],
+      conv: [
+        {t:"相似病例 · 加用 SGLT2i 后血糖达标", d:"支撑", k:"sup"},
+        {t:"历史采纳 · 该人群监测计划", d:"参考", k:"ref"}
+      ],
+      net: [
+        {t:"患者体验 · 集采后费用可负担", d:"支撑", k:"sup"},
+        {t:"患者顾虑 · 长期用药恐惧", d:"攻击", k:"atk"}
+      ]
+    }
+  },
+  {
+    id:"qa1",
+    q: "患者担心 SGLT2i 费用，家里农村、医保报销比例不高，怎么办？",
+    a: "识别为「现实障碍 · 经济负担」类问题，命中经济类论据节点：国产仿制 SGLT2i 集采后月费用约 100 元，且医保可报销。若仍难以负担，可与患者讨论备选方案并记录偏好。",
+    plans: [],
+    tail: "",
+    ev: {lit:14, conv:31, net:55},
+    items: {
+      lit: [
+        {t:"集采价格目录 · 仿制药价格", d:"支撑", k:"sup"}
+      ],
+      conv: [
+        {t:"医患对话 · 医保报销咨询记录", d:"支撑", k:"sup"},
+        {t:"历史纠错 · 费用表述修正", d:"参考", k:"ref"}
+      ],
+      net: [
+        {t:"患者评论聚合 · 集采后费用反馈", d:"支撑", k:"sup"},
+        {t:"患者体验 · 农村患者负担案例", d:"支撑", k:"sup"},
+        {t:"患者顾虑 · 停药风险讨论", d:"攻击", k:"atk"}
+      ]
+    }
+  },
+  {
+    id:"qa2",
+    q: "患者有反复发作的泌尿道感染史（每年 3-4 次），还能用 SGLT2i 吗？",
+    a: "反复泌尿道感染是 SGLT2i 的相对禁忌。SGLT2i 说明书论据状态由「采用」调整为「否决」，方案 1 权重降至 W=0.510 并标注「不推荐」；GLP-1 方案（W=0.755）升为当前最优。",
+    plans: [
+      {no:"1", name:"加用 GLP-1", w:"W=0.755", top:true, note:"升为高优先级 · 本场最优",
+       ev:{lit:40, conv:38, net:22},
+       items:{lit:[{t:"LEADER 试验 · 心血管获益", d:"支撑", k:"sup", evId:"qa0-op2-lit-0"}],
+              conv:[{t:"相似病例 · 感染史后换用 GLP-1", d:"支撑", k:"sup"},
+                     {t:"医生纠错 · 禁忌证判定修正", d:"参考", k:"ref", evId:"qa2-conv-1"}],
+              net:[{t:"评论聚合信号 · 感染体验讨论", d:"支撑", k:"sup", evId:"qa2-net-0"}]}},
+      {no:"2", name:"加用 SGLT2i", w:"W=0.510", note:"<span class='pr-warn'>不推荐</span> · 反复泌尿道感染为相对禁忌",
+       ev:{lit:52, conv:30, net:18},
+       items:{lit:[{t:"SGLT2i 说明书 · 禁忌证条目", d:"否决", k:"atk"},
+                    {t:"泌尿感染风险研究", d:"支撑", k:"sup", evId:"qa2-lit-1"},{t:"ADA 指南 · 无禁忌时启动 SGLT2i（本患者存在相对禁忌）", d:"攻击", k:"atk", evId:"gf-17"}],
+              conv:[{t:"医生纠错 · 禁忌证判定修正", d:"参考", k:"ref", evId:"qa2-conv-1"}],
+              net:[{t:"评论聚合信号 · 5 条报告泌尿感染", d:"支撑", k:"sup"}]}}
+    ],
+    tail: "",
+    ev: {lit:48, conv:36, net:16},
+    items: {
+      lit: [
+        {t:"SGLT2i 说明书 · 禁忌证条目", d:"否决", k:"atk"},
+        {t:"泌尿感染风险研究", d:"支撑", k:"sup"}
+      ],
+      conv: [
+        {t:"相似病例 · 感染史后换用 GLP-1", d:"支撑", k:"sup"},
+        {t:"医生纠错 · 禁忌证判定修正", d:"参考", k:"ref"}
+      ],
+      net: [
+        {t:"评论聚合信号 · 5 条报告泌尿感染", d:"支撑", k:"sup"}
+      ]
+    }
+  },
+  {
+    id:"qa3",
+    q: "患者晕针，GLP-1 注射方案还能用吗？",
+    a: "晕针史使注射类方案（GLP-1、基础胰岛素）均被否决，建议换用口服方案（如 DPP-4i）。该「反复感染 + 注射恐惧 + CKD 三重约束下的合理决策路径」在图谱中无显式连接，已生成为「新隐含关系候选」事件出库。",
+    plans: [
+      {no:"1", name:"换用口服方案", w:"", top:true, note:"如 DPP-4i · 无注射需求",
+       ev:{lit:35, conv:45, net:20},
+       items:{lit:[{t:"口服降糖药对比研究", d:"支撑", k:"sup"},{t:"ADA 指南 · 非危重 T2DM 可用 DPP-4i（更安全简单）", d:"参考", k:"ref", evId:"gf-13"}],
+              conv:[{t:"医患对话 · 注射恐惧反馈", d:"支撑", k:"sup"},
+                     {t:"相似病例 · 晕针改用口服方案", d:"支撑", k:"sup", evId:"qa3-conv-1"}],
+              net:[{t:"患者偏好 · 口服优先", d:"支撑", k:"sup"}]}},
+      {no:"2", name:"GLP-1（注射）", w:"", note:"<span class='pr-warn'>否决</span> · 晕针史",
+       ev:{lit:30, conv:50, net:20},
+       items:{lit:[{t:"LEADER 试验 · 注射剂型", d:"参考", k:"ref", evId:"qa0-op2-lit-0"}],
+              conv:[{t:"医患对话 · 注射恐惧反馈", d:"支撑", k:"sup"},
+                     {t:"医生纠错 · 注射禁忌确认", d:"参考", k:"ref"}],
+              net:[{t:"患者评论 · 注射恐惧体验", d:"支撑", k:"sup"}]}},
+      {no:"3", name:"基础胰岛素", w:"", note:"<span class='pr-warn'>否决</span> · 晕针史",
+       ev:{lit:25, conv:52, net:23},
+       items:{lit:[{t:"CKD 低血糖风险研究", d:"支撑", k:"sup", evId:"qa0-op4-lit-0"}],
+              conv:[{t:"医生纠错 · 注射禁忌确认", d:"参考", k:"ref"}],
+              net:[{t:"患者分享 · 低血糖经历", d:"攻击", k:"atk", evId:"qa0-op4-net-0"},
+                    {t:"患者评论 · 注射恐惧体验", d:"支撑", k:"sup"}]}}
+    ],
+    tail: "",
+    ev: {lit:20, conv:52, net:28},
+    items: {
+      lit: [
+        {t:"口服降糖药对比研究", d:"支撑", k:"sup"}
+      ],
+      conv: [
+        {t:"医患对话 · 注射恐惧反馈", d:"支撑", k:"sup"},
+        {t:"相似病例 · 晕针改用口服方案", d:"支撑", k:"sup"},
+        {t:"医生纠错 · 注射禁忌确认", d:"参考", k:"ref"}
+      ],
+      net: [
+        {t:"患者评论 · 注射恐惧体验", d:"支撑", k:"sup"},
+        {t:"患者偏好 · 口服优先", d:"支撑", k:"sup"}
+      ]
+    }
+  }
+];
+
+/* ============================================================
+   论据详情（演示）：links 为真实可访问链接，shot 为证据快照
+   ============================================================ */
+function shotLit(o){ return '<div class="shot shot-lit"><div class="shot-bar"><span class="sb-dot"></span><span class="sb-t">Evidence Snapshot</span><span class="sb-tag">演示快照</span></div><div class="shot-body"><div class="sl-j">'+o.j+'</div><div class="sl-t">'+o.t+'</div><div class="sl-a">'+o.a+'</div><div class="sl-x">'+o.x+'</div><div class="sl-m">'+o.m+'</div></div></div>'; }
+function shotConv(rows, meta){ var r = rows.map(function(x){ return '<div class="sc-row '+(x[0]==="患"?"md":"dr")+'"><span class="sc-who">'+x[0]+'</span><p>'+x[1]+'</p></div>'; }).join(""); return '<div class="shot shot-conv"><div class="shot-bar"><span class="sb-dot"></span><span class="sb-t">对话记录</span><span class="sb-tag">演示快照</span></div><div class="shot-body">'+r+'<div class="sc-meta">'+meta+'</div></div></div>'; }
+function shotNet(o){ return '<div class="shot shot-net"><div class="shot-bar"><span class="sb-dot"></span><span class="sb-t">网络评论</span><span class="sb-tag">演示快照</span></div><div class="shot-body"><div class="sn-top"><span class="sn-ava">'+o.ava+'</span><span class="sn-name">'+o.name+'</span><span class="sn-time">'+o.time+'</span></div><div class="sn-txt">'+o.txt+'</div><div class="sn-like">'+o.like+'</div></div></div>'; }
+
+/* ============================================================
+   指南论据：从 json文件/guideline_frames.json 动态加载
+   （原硬编码 GUIDE_EV 已删除；JSON 中每条框架对应一个 gf-N 论据节点，
+    示例问答里 evId:"gf-N" 的引用会自动命中这些动态论据）
+   ============================================================ */
+var GUIDE_EV = {};
+
+function guideEvFromJson(f, key){
+  var st = f.evidence_strength || {};
+  var caveats = (f.caveats||[]).map(function(c){ return c.content; }).filter(function(s){ return s; });
+  return {
+    content: f.claim || (f.original_text||"").slice(0,140) || "（该框架未提供中文结论摘要）",
+    strength: "推荐级别：" + (st.level||"—") + " · 证据等级：" + (st.grade||"—"),
+    source: (st.sources||[]).join(", ") || f.source_type || "—",
+    scenario: f.scenario_detail || f.clinical_scenario || "",
+    caveats: caveats.join("；"),
+    links: [{label:"Diabetes Care · ADA 诊疗标准", url:"https://diabetesjournals.org/care"}],
+    shot: shotLit({
+      j: "ADA Standards of Care · 住院患者血糖管理（来自 guideline_frames.json）",
+      t: f.clinical_scenario || "",
+      a: "American Diabetes Association",
+      x: (f.original_text || f.claim || "").slice(0,600),
+      m: "指南论据框架 " + key + " · JSON 动态加载"
+    })
+  };
+}
+
+function loadGuidelinesFromJson(){
+  return fetch("json文件/guideline_frames.json", {cache:"no-store"})
+    .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function(frames){
+      (frames||[]).forEach(function(f, i){ GUIDE_EV["gf-" + i] = guideEvFromJson(f, "gf-" + i); });
+      var st = document.getElementById("jsonStatus");
+      if(st){ st.textContent = "指南论据 " + Object.keys(GUIDE_EV).length + " 条 · 已从 JSON 加载"; }
+      console.log("[guideline_frames.json] 已加载 " + Object.keys(GUIDE_EV).length + " 条指南论据");
+      return GUIDE_EV;
+    })
+    .catch(function(err){
+      console.warn("[guideline_frames.json] 加载失败：", err);
+      var st = document.getElementById("jsonStatus");
+      if(st){ st.textContent = "JSON 未加载 · 见上方红色提示"; }
+      showJsonNotice("指南论据 JSON 加载失败：" + err.message + "。直接双击打开 HTML 时浏览器会拦截本地 JSON 读取，请用「启动页面.bat」或 python -m http.server 启动本地服务器后访问。");
+      return {};
+    });
+}
+
+function showJsonNotice(msg){
+  var box = document.getElementById("jsonNotice");
+  if(!box) return;
+  box.style.display = "block";
+  box.innerHTML = "⚠ " + msg;
+}
+
+loadGuidelinesFromJson();
+
+var EV_DETAIL = {
+  /* ---- QA0 调整方案 ---- */
+  "qa0-lit-0": {
+    content: "达格列净在 CKD 患者（含或不含糖尿病）中，使主要复合终点（eGFR 持续下降 ≥50%、ESKD 或心血管/肾脏死亡）风险降低 39%（HR 0.61, 95%CI 0.51-0.72）。",
+    time: "2026-06-14", strength: "A 级 · RCT",
+    links: [
+      {label:"PubMed · DAPA-CKD 原文", url:"https://pubmed.ncbi.nlm.nih.gov/32970396/"},
+      {label:"NEJM 原文 DOI:10.1056/NEJMoa2024816", url:"https://www.nejm.org/doi/10.1056/NEJMoa2024816"}
+    ],
+    shot: shotLit({j:"N Engl J Med · 2020;383(15):1436-1446", t:"Dapagliflozin in Patients with Chronic Kidney Disease", a:"Heerspink HJL, Stefánsson BV, Correa-Rotter R, et al.", x:"Among patients with chronic kidney disease, with or without type 2 diabetes, the risk of a composite of a sustained decline in eGFR, end-stage kidney disease, or death from renal or cardiovascular causes was significantly lower with dapagliflozin than with placebo.", m:"PMID: 32970396 · DOI: 10.1056/NEJMoa2024816"})
+  },
+  "qa0-lit-1": {
+    content: "ADA 糖尿病诊疗标准 CKD 章节：eGFR ≥20 mL/min/1.73m² 的 CKD 患者推荐使用 SGLT2i 以延缓肾病进展、降低心血管风险（A 级推荐）。",
+    time: "2026-01-08", strength: "A 级 · 指南推荐",
+    links: [{label:"Diabetes Care · ADA 诊疗标准", url:"https://diabetesjournals.org/care"}],
+    shot: shotLit({j:"Diabetes Care · ADA Standards of Care", t:"Chronic Kidney Disease and Risk Management: Standards of Care in Diabetes", a:"American Diabetes Association Professional Practice Committee", x:"Recommendation 11.10: In patients with type 2 diabetes and CKD with eGFR ≥20 mL/min/1.73 m², use of an SGLT2 inhibitor is recommended to reduce CKD progression and cardiovascular events (A).", m:"Diabetes Care 2025 · CKD 章节（演示引用）"})
+  },
+  "qa0-lit-2": {
+    content: "DAPA-CKD 亚组探索提示 eGFR 20-25 mL/min 区间获益幅度略低，证据有限，需结合个体情况评估后使用。",
+    time: "2026-06-14", strength: "C 级 · 亚组分析",
+    links: [{label:"PMC · DAPA-CKD 死亡率预设分析", url:"https://pmc.ncbi.nlm.nih.gov/articles/PMC8244648/"}],
+    shot: shotLit({j:"Eur Heart J · 2021;42(13):1216-1227", t:"Effects of dapagliflozin on mortality in patients with chronic kidney disease", a:"Heerspink HJL, et al.", x:"Pre-specified analysis from the DAPA-CKD randomized controlled trial, supporting cardiovascular safety in the CKD population.", m:"PMID: 33571997（演示引用）"})
+  },
+  "qa0-conv-0": {
+    content: "本中心既往 3 例 eGFR 30-45、HbA1c>8% 的患者加用 SGLT2i 后，3 个月 HbA1c 下降 1.2-1.8%，eGFR 稳定，未见严重不良事件。",
+    time: "2026-07-02", strength: "案例一致性高",
+    links: [],
+    shot: shotConv([["患","大夫，之前有人和我情况差不多吗？加了新药效果怎么样？"],["医","有，和你类似 eGFR 偏低、血糖高的患者，加用 SGLT2i 后三个月糖化降了 1.5% 左右，肾功能稳定。"],["患","那我也试试？"],["医","先查一次尿常规和 eGFR，没有禁忌的话可以启动，前 3 个月每 4 周复查一次。"]], "相似病例回顾 · 2026-07-02")
+  },
+  "qa0-conv-1": {
+    content: "历史会话中，医生对同类患者采纳了「启动 SGLT2i + 每 3 个月监测 eGFR/尿常规」的监测计划，作为本场对话的参考方案。",
+    time: "2026-07-18", strength: "参考 · 历史采纳",
+    links: [],
+    shot: shotConv([["医","这位患者 eGFR 35，启动 SGLT2i 的话按我们之前的模板，每 3 个月复查一次肾功能和尿常规。"],["患","需要一直查吗？"],["医","前半年勤一些，稳定后放宽到半年一次。"]], "历史采纳记录 · 2026-07-18")
+  },
+  "qa0-net-0": {
+    content: "网络评论聚合（28 条）：集采后 SGLT2i 月费用约 100 元，多数患者反馈费用可负担，用药依从性改善。",
+    time: "2026-08-03", strength: "一致性强 · 28 条",
+    links: [],
+    shot: shotNet({ava:"糖", name:"控糖日记", time:"2026-08-01", txt:"集采之后这药一个月一百来块，医保还能报一部分，负担小多了，坚持吃了大半年。", like:"▲ 赞同 128 · 评论 23"})
+  },
+  "qa0-net-1": {
+    content: "部分患者评论表达对长期用药的担忧（依赖、副作用累积），需要在沟通中解释长期获益与风险监测计划。",
+    time: "2026-08-03", strength: "中等 · 5 条",
+    links: [],
+    shot: shotNet({ava:"果", name:"慢病十年", time:"2026-07-28", txt:"就是担心要一直吃下去，会不会有依赖？副作用攒多了怎么办？", like:"▲ 赞同 41 · 评论 9"})
+  },
+
+  /* ---- QA0 方案 2：GLP-1 专属 ---- */
+  "qa0-op2-lit-0": {
+    content: "LEADER 试验（利拉鲁肽，9340 例 T2DM 高危患者）：主要心血管复合终点风险降低 13%（HR 0.87, 95%CI 0.78-0.97），肾脏事件进展延缓；需皮下注射并监测胃肠道反应。",
+    time: "2026-03-12", strength: "A 级 · RCT",
+    links: [
+      {label:"PubMed · LEADER 试验", url:"https://pubmed.ncbi.nlm.nih.gov/27295427/"},
+      {label:"NEJM 原文 DOI:10.1056/NEJMoa1603827", url:"https://www.nejm.org/doi/10.1056/NEJMoa1603827"}
+    ],
+    shot: shotLit({j:"N Engl J Med · 2016;375(4):311-322", t:"Liraglutide and Cardiovascular Outcomes in Type 2 Diabetes", a:"Marso SP, Daniels GH, Brown-Frandsen K, et al.", x:"Among patients with type 2 diabetes and high cardiovascular risk, the rate of the first occurrence of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke was lower with liraglutide than with placebo.", m:"PMID: 27295427 · DOI: 10.1056/NEJMoa1603827"})
+  },
+  "qa0-op2-conv-0": {
+    content: "本中心既往 2 例接受 GLP-1 皮下注射的患者反馈注射耐受良好，仅 1 例早期出现轻度恶心，2 周内缓解。",
+    time: "2026-06-30", strength: "案例一致性中",
+    links: [],
+    shot: shotConv([["患","打针麻烦吗？会不会很疼？"],["医","针头很细，多数患者反馈能接受；个别有恶心，一般两周内适应。"],["患","那就好，我先试一个月看看。"]], "注射耐受反馈 · 2026-06-30")
+  },
+  "qa0-op2-net-0": {
+    content: "网络评论聚合（12 条）：GLP-1 主要顾虑集中在注射不便与胃肠道反应（恶心/腹泻），部分患者因反应停药。",
+    time: "2026-08-10", strength: "一致性强 · 12 条",
+    links: [],
+    shot: shotNet({ava:"青", name:"糖友互助群", time:"2026-08-06", txt:"打了一个月，恶心反胃扛不住，医生让先减量试试，不行就换口服的。", like:"▲ 赞同 86 · 评论 17"})
+  },
+
+  /* ---- QA0 方案 3：二甲双胍专属 ---- */
+  "qa0-op3-lit-0": {
+    content: "二甲双胍说明书与 KDIGO 共识：eGFR 30-45 mL/min/1.73m² 时需减量（上限 1000mg/日），eGFR<30 应停用；本患者 eGFR 35 且已服 2000mg/日，超上限需先减量。",
+    time: "2026-02-18", strength: "A 级 · 说明书/共识",
+    links: [{label:"PubMed · Metformin and CKD 综述", url:"https://pubmed.ncbi.nlm.nih.gov/?term=metformin+chronic+kidney+disease+dose+adjustment"}],
+    shot: shotLit({j:"KDIGO 2024 糖尿病与 CKD 管理指南（演示引用）", t:"二甲双胍在 CKD 患者中的剂量调整", a:"KDIGO Diabetes Work Group", x:"Recommendation: In patients with eGFR 30-45 mL/min/1.73 m², the metformin dose should be reduced to ≤1000 mg/day; discontinue if eGFR falls below 30.", m:"KDIGO 2024（演示引用）"})
+  },
+  "qa0-op3-conv-0": {
+    content: "历史会话：医生曾对 eGFR 35 的患者讨论「二甲双胍维持 1000mg/日 + 加用其他机制药物」的减量方案，患者知情后接受。",
+    time: "2026-07-05", strength: "参考 · 历史讨论",
+    links: [],
+    shot: shotConv([["医","你现在的二甲双胍一天 2000mg，肾功能 35 的话超了安全上限，需要先减到 1000mg 再评估。"],["患","减了会不会血糖更高？"],["医","不会单纯减药，会同时加一种别的机制的药来补足。"]], "减量方案讨论 · 2026-07-05")
+  },
+  "qa0-op3-net-0": {
+    content: "网络讨论（8 条）：患者对「肾功能不好还能不能吃二甲双胍」存在普遍困惑，部分误以为需立即停药。",
+    time: "2026-07-20", strength: "中等 · 8 条",
+    links: [],
+    shot: shotNet({ava:"山", name:"肾友圈", time:"2026-07-18", txt:"肌酐高了以后二甲双胍还能吃吗？我医生让我减到一天一片，说照原量伤肾。", like:"▲ 赞同 53 · 评论 11"})
+  },
+
+  /* ---- QA0 方案 4：基础胰岛素专属 ---- */
+  "qa0-op4-lit-0": {
+    content: "CKD 患者胰岛素清除率下降、低血糖风险升高：eGFR<60 时基础胰岛素起始剂量需下调 25-50%，并强化血糖监测（尤其夜间）。",
+    time: "2026-04-09", strength: "A 级 · 共识",
+    links: [{label:"PubMed · Insulin dosing in CKD", url:"https://pubmed.ncbi.nlm.nih.gov/?term=insulin+chronic+kidney+disease+dosing"}],
+    shot: shotLit({j:"Diabetes Care · 胰岛素在肾功能不全中的使用（演示引用）", t:"CKD 患者胰岛素剂量调整", a:"ADA 专家共识（演示引用）", x:"Reduced insulin clearance in CKD increases hypoglycemia risk; basal insulin should be initiated at reduced doses with intensified glucose monitoring.", m:"ADA 共识（演示引用）"})
+  },
+  "qa0-op4-conv-0": {
+    content: "医生侧记录：对启动基础胰岛素的 CKD 患者统一采用「起始剂量减半 + 睡前血糖监测 + 每周随访」的强化监测计划。",
+    time: "2026-06-18", strength: "参考 · 医生方案",
+    links: [],
+    shot: shotConv([["医","肾功能不好的人用胰岛素，剂量要从一半起，晚上睡前一定测一次血糖，头两周每周回来复查。"],["患","要打多久？"],["医","先按计划走，血糖稳了再看能不能换回口服。"]], "低血糖监测计划 · 2026-06-18")
+  },
+  "qa0-op4-net-0": {
+    content: "患者评论聚合（15 条）：低血糖经历（心慌/冷汗/夜间低血糖）是胰岛素使用者最集中的负面反馈，CKD 患者尤其突出。",
+    time: "2026-08-15", strength: "一致性强 · 15 条",
+    links: [],
+    shot: shotNet({ava:"夜", name:"糖友夜话", time:"2026-08-12", txt:"肾不好以后打胰岛素特别容易低血糖，半夜心慌出汗醒过来，吓得不敢打了。", like:"▲ 赞同 102 · 评论 26"})
+  },
+
+  /* ---- QA1 费用顾虑 ---- */
+  "qa1-lit-0": {
+    content: "国家集采目录显示：国产 SGLT2i 仿制药中选价约 0.7-1.0 元/片，按标准剂量月费用约 60-100 元，医保可进一步报销。",
+    time: "2026-05-20", strength: "官方目录",
+    links: [{label:"国家医保局官网", url:"https://www.nhsa.gov.cn"}],
+    shot: shotLit({j:"国家组织药品集中采购 · 中选目录", t:"SGLT2 抑制剂类仿制药中选结果", a:"国家医疗保障局（演示引用）", x:"中选品种达格列净片 10mg，中选价 0.85 元/片；恩格列净片 10mg，中选价 0.95 元/片。", m:"集采批次 · 2026 年（演示数据）"})
+  },
+  "qa1-conv-0": {
+    content: "医患对话记录：患者咨询医保报销比例与自付费用，医生告知集采后费用显著下降，可负担。",
+    time: "2026-06-22", strength: "会话证据",
+    links: [],
+    shot: shotConv([["患","这个药贵不贵？我们农村医保报销比例不高。"],["医","集采后一个月也就几十到一百块，医保目录内还能再报一部分，自付不多。"],["患","那行，我先试试。"]], "医保咨询记录 · 2026-06-22")
+  },
+  "qa1-conv-1": {
+    content: "历史纠错记录：早前会话中「SGLT2i 月费用约 400 元」表述有误，已按集采价格修正，本次引用修正后版本。",
+    time: "2026-05-25", strength: "参考 · 纠错后",
+    links: [],
+    shot: shotConv([["医","（批注）上次给的 400 元/月是集采前价格，已修正为集采后约 100 元，避免误导患者。"]], "纠错记录 · 2026-05-25")
+  },
+  "qa1-net-0": {
+    content: "患者评论聚合（19 条）：集采后费用反馈集中在「每月 60-120 元」，与目录价格一致，普遍表示可负担。",
+    time: "2026-07-15", strength: "一致性强 · 19 条",
+    links: [],
+    shot: shotNet({ava:"山", name:"糖友老王", time:"2026-07-12", txt:"我们这边集采价，一个月下来七十几块，比以前便宜太多了。", like:"▲ 赞同 96 · 评论 17"})
+  },
+  "qa1-net-1": {
+    content: "农村患者负担案例：部分评论反映异地报销流程复杂、垫付压力大，提示需结合当地医保政策沟通。",
+    time: "2026-07-20", strength: "中等 · 6 条",
+    links: [],
+    shot: shotNet({ava:"林", name:"农村糖友", time:"2026-07-18", txt:"药是不贵了，就是报销要去县里办手续，有点麻烦，先自费吃着。", like:"▲ 赞同 33 · 评论 8"})
+  },
+  "qa1-net-2": {
+    content: "患者顾虑讨论：少数患者因担心「停药后反弹」而犹豫是否长期用药，需要给出明确的长期管理预期。",
+    time: "2026-07-21", strength: "中等 · 4 条",
+    links: [],
+    shot: shotNet({ava:"风", name:"走一步算一步", time:"2026-07-19", txt:"听说这药停了血糖会反弹，那是不是要一辈子吃？", like:"▲ 赞同 27 · 评论 11"})
+  },
+
+  /* ---- QA2 感染史禁忌 ---- */
+  "qa2-lit-0": {
+    content: "SGLT2i 说明书标注：反复泌尿生殖道感染史患者慎用或避免使用。说明书证据强度高于个案观察，本场论据状态由「采用」调整为「否决」。",
+    time: "2026-08-21", strength: "说明书级 · 最高优先",
+    links: [{label:"NMPA 国家药监局官网", url:"https://www.nmpa.gov.cn"}],
+    shot: shotLit({j:"药品说明书 · 达格列净片", t:"【禁忌】与【注意事项】节选", a:"国家药品监督管理局核准（演示引用）", x:"有反复尿路感染或生殖器感染病史者慎用；使用期间如出现尿路感染症状，应及时评估并考虑停药。", m:"说明书版本 · 2026（演示数据）"})
+  },
+  "qa2-lit-1": {
+    content: "Meta 分析显示：SGLT2i 使生殖器感染风险升高约 3 倍（RR 3.3），泌尿感染风险轻度升高，是相对禁忌的证据基础。",
+    time: "2026-07-30", strength: "A 级 · Meta 分析",
+    links: [{label:"PubMed 检索 · SGLT2i 感染风险", url:"https://pubmed.ncbi.nlm.nih.gov/?term=SGLT2+inhibitors+urinary+tract+infection+meta-analysis"}],
+    shot: shotLit({j:"系统评价 / Meta 分析（演示引用）", t:"SGLT2 inhibitors and risk of genital and urinary tract infections", a:"（演示作者列表）", x:"Pooled analysis showed an approximately 3-fold higher risk of genital infections with SGLT2 inhibitor use; urinary tract infection risk was modestly increased.", m:"检索词：SGLT2 inhibitors + urinary tract infection + meta-analysis"})
+  },
+  "qa2-conv-0": {
+    content: "相似病例：1 例有反复泌尿感染史患者加用 SGLT2i 后 2 个月出现尿路感染，换用 GLP-1 后未再复发。",
+    time: "2026-08-10", strength: "案例证据",
+    links: [],
+    shot: shotConv([["医","你之前那位感染史的患者后来怎么处理的？"],["医2","用了两个月 SGLT2i 就尿路感染了，换了 GLP-1，到现在快半年没复发。"]], "病例讨论 · 2026-08-10")
+  },
+  "qa2-conv-1": {
+    content: "医生纠错记录：早前会话中「SGLT2i 可用于反复感染史患者」的判定被修正为「相对禁忌，不建议优先」，已回灌图谱。",
+    time: "2026-08-19", strength: "参考 · 纠错后",
+    links: [],
+    shot: shotConv([["医","（批注）上轮判定欠妥：反复泌尿感染史应视为相对禁忌，说明书优先级更高，修正论据状态为否决。"]], "纠错记录 · 2026-08-19")
+  },
+  "qa2-net-0": {
+    content: "评论聚合信号：5 条评论报告使用 SGLT2i 期间出现泌尿感染，与说明书风险提示一致，佐证禁忌判定。",
+    time: "2026-08-15", strength: "聚合信号 · 5 条",
+    links: [],
+    shot: shotNet({ava:"麦", name:"糖友小张", time:"2026-08-09", txt:"吃这个药第三个月尿路感染了，停药后好了，医生说我感染史就不该用。", like:"▲ 赞同 52 · 评论 14"})
+  },
+
+  /* ---- QA3 晕针 ---- */
+  "qa3-lit-0": {
+    content: "DPP-4i 口服给药、低血糖风险低、对肾功能影响小，适合存在注射恐惧等多重禁忌的 CKD 场景。",
+    time: "2026-06-28", strength: "A 级 · 指南推荐",
+    links: [{label:"PubMed 检索 · DPP-4i 综述", url:"https://pubmed.ncbi.nlm.nih.gov/?term=DPP-4+inhibitors+type+2+diabetes+review"}],
+    shot: shotLit({j:"Diabetes Care · ADA Standards of Care", t:"Pharmacologic Approaches to Glycemic Treatment", a:"American Diabetes Association（演示引用）", x:"Oral DPP-4 inhibitors are weight-neutral, have a low risk of hypoglycemia, and are generally well tolerated in patients with CKD; dose adjustment by eGFR may be required.", m:"检索词：DPP-4 inhibitors + type 2 diabetes + review"})
+  },
+  "qa3-conv-0": {
+    content: "医患对话：患者明确表达对注射的恐惧（晕针史），要求优先口服方案。",
+    time: "2026-09-02", strength: "会话证据 · 直接表述",
+    links: [],
+    shot: shotConv([["患","大夫，我从小就怕打针，一看到针头就头晕，能不打针吗？"],["医","可以，我们看口服方案，先不用考虑注射类。"]], "当前会话摘录 · 2026-09-02")
+  },
+  "qa3-conv-1": {
+    content: "相似病例：既往 2 例晕针患者改口服方案（DPP-4i/SGLT2i）后血糖控制达标，无依从性问题。",
+    time: "2026-08-25", strength: "案例证据",
+    links: [],
+    shot: shotConv([["医","之前晕针的那两位患者后来都用的口服药，血糖控制得不错，也愿意坚持。"],["医2","嗯，说明对这类患者口服优先是可行的。"]], "病例回顾 · 2026-08-25")
+  },
+  "qa3-conv-2": {
+    content: "医生纠错确认：注射类方案（GLP-1、基础胰岛素）因晕针史被整体否决，该结论已回灌为「新隐含关系候选」事件。",
+    time: "2026-09-02", strength: "参考 · 纠错后",
+    links: [],
+    shot: shotConv([["医","（批注）晕针史 + 反复感染 + CKD 三重约束下，注射类全部排除，口服优先。已生成隐含关系候选出库。"]], "纠错记录 · 2026-09-02")
+  },
+  "qa3-net-0": {
+    content: "患者评论：注射恐惧在糖友中较普遍，多人表示因怕针而拒绝胰岛素/GLP-1，提示口服方案的重要性。",
+    time: "2026-08-28", strength: "一致性强 · 12 条",
+    links: [],
+    shot: shotNet({ava:"明", name:"怕针的糖友", time:"2026-08-26", txt:"一说打针我就打怵，宁可血糖高点，后来医生给换了口服药才坚持下来。", like:"▲ 赞同 74 · 评论 19"})
+  },
+  "qa3-net-1": {
+    content: "患者偏好：评论中「口服优先」呼声明显，多数患者表示同等疗效下优先选口服制剂。",
+    time: "2026-08-28", strength: "中等 · 8 条",
+    links: [],
+    shot: shotNet({ava:"川", name:"糖友圈", time:"2026-08-27", txt:"能口服就不想打针，同样效果的话我肯定选口服的。", like:"▲ 赞同 61 · 评论 12"})
+  }
+};
+
+/* ============================================================
+   渲染
+   ============================================================ */
+var EV_COLORS = {lit:"#1D6FD1", conv:"#0F766E", net:"#E8871E"};
+var EV_NAMES = {lit:"文献论据", conv:"医患对话论据", net:"网络评论论据"};
+
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+/* 纯 CSS 柱状图：柱高 = 论据占比（无外部依赖，任何环境可渲染） */
+function cssChart(ev){
+  return ["lit","conv","net"].map(function(k){
+    var v = ev[k];
+    return '<div class="ev-bar"><span class="bv">'+v+'%</span><div class="bl" style="--bc:'+EV_COLORS[k]+';height:'+v+'%"></div><span class="bn">'+EV_NAMES[k]+'</span></div>';
+  }).join("");
+}
+
+/* 三来源论据列表（默认收起，点击来源展开）：srcKey 用于作用域隔离 */
+function srcBlocks(qa, items, ev, opt){
+  return ["lit","conv","net"].map(function(k){
+    var c = EV_COLORS[k];
+    var scope = opt ? ("opt-"+opt.no) : "qa";
+    var its = items[k].map(function(it, i){
+      var evKey = it.evId || (qa.id+"-"+k+"-"+i);
+      var d = EV_DETAIL[evKey];
+      var brief = d ? esc(d.content.length>46 ? d.content.slice(0,46)+"…" : d.content) : "";
+      return '<li class="ev-it" data-src="'+k+'" data-idx="'+i+'" data-evk="'+evKey+'" title="点击查看论据详情"><span class="evd '+(it.k==="sup"?"sup":(it.k==="atk"?"atk":"ref"))+'">'+it.d+'</span><span class="ev-t">'+esc(it.t)+'</span>'+(brief?'<span class="ev-brief">'+brief+'</span>':"")+'<span class="ev-go">查看 ›</span></li>';
+    }).join("");
+    return '<div class="ev-src-btn" data-scope="'+scope+'" data-src="'+k+'"><span class="es-tag" style="background:'+c+'"></span><span class="es-name">'+EV_NAMES[k]+'</span><span class="es-cnt">'+items[k].length+' 条</span><span class="es-pct" style="color:'+c+'">'+ev[k]+'%</span><span class="es-arrow">▾</span></div>'+
+      '<div class="ev-list" data-scope="'+scope+'" data-src="'+k+'"><ul>'+its+'</ul></div>';
+  }).join("");
+}
+
+function renderAiCard(qa){
+  var plans = (qa.plans||[]).map(function(p){
+    return '<div class="plan-row'+(p.top?' top':'')+'" data-opt="'+p.no+'" title="点击查看该方案论据分布"><span class="pr-no">'+p.no+'</span><span class="pr-name">'+p.name+'</span>'+(p.w?'<span class="pr-w">'+p.w+'</span>':'')+'<span class="pr-note">'+p.note+'</span><span class="pr-arrow">▾</span></div>'+
+      '<div class="opt-ev" data-opt="'+p.no+'">'+
+        '<div class="oe-head"><span>论据分布</span><span class="oe-sub">方案 '+p.no+' · '+p.name+'</span></div>'+
+        '<div class="ev-chart">'+cssChart(p.ev)+'</div>'+
+        '<div class="ev-legend">'+
+          '<span class="lg"><span class="dot" style="background:#1D6FD1"></span>文献</span>'+
+          '<span class="lg"><span class="dot" style="background:#0F766E"></span>医患对话</span>'+
+          '<span class="lg"><span class="dot" style="background:#E8871E"></span>网络评论</span>'+
+          '<span class="lg" style="margin-left:auto">柱高 = 论据占比</span>'+
+        '</div>'+
+        '<div class="ev-sources">'+srcBlocks(qa, p.items, p.ev, p)+'</div>'+
+      '</div>';
+  }).join("");
+
+  return '<div class="msg ai"><div class="ava">AI</div><div class="bubble"><div class="m-meta"><span class="who">应用反馈智能体</span><span class="tm">6 步辩论 · 已收敛</span></div><div class="ai-card">'+
+    '<div class="ac-head"><span class="ac-ic">证</span><span class="ac-name">循证解答</span><span class="ac-tag">论据全部来自知识图谱 · 可追溯</span></div>'+
+    '<div class="ac-body"><div class="ai-answer">'+esc(qa.a)+(plans?'<div class="plan">'+plans+'</div>':"")+(qa.tail?'<div class="ai-advice"><span class="adv-ic">!</span><span>'+esc(qa.tail)+'</span></div>':"")+'</div>'+
+    '<div class="ev-section">'+
+      '<div class="ev-title-bar"><span class="ev-ic">图</span><span class="ev-name">解释图谱 · 论据来源构成</span><span class="ev-sub">点击方案查看其论据分布</span></div>'+
+      '<div class="ev-chart">'+cssChart(qa.ev)+'</div>'+
+      '<div class="ev-legend">'+
+        '<span class="lg"><span class="dot" style="background:#1D6FD1"></span>文献</span>'+
+        '<span class="lg"><span class="dot" style="background:#0F766E"></span>医患对话</span>'+
+        '<span class="lg"><span class="dot" style="background:#E8871E"></span>网络评论</span>'+
+        '<span class="lg" style="margin-left:auto">柱高 = 论据占比</span>'+
+      '</div>'+
+      '<div class="ev-foot"><span><i style="background:rgba(14,159,110,.75)"></i>支撑</span><span><i style="background:rgba(214,69,69,.75)"></i>攻击 / 否决</span><span><i style="background:rgba(15,118,110,.6)"></i>参考</span><span>点击方案查看论据明细</span></div>'+
+    '</div>'+
+    '</div></div></div></div>';
+}
+
+/* ============================================================
+   论据详情侧栏
+   ============================================================ */
+function switchSideTab(tab){
+  var tabs = document.querySelectorAll(".side-tabs .st");
+  for(var i=0;i<tabs.length;i++){
+    var on = tabs[i].getAttribute("data-tab")===tab;
+    tabs[i].classList.toggle("active", on);
+  }
+  document.getElementById("panePat").classList.toggle("active", tab==="pat");
+  document.getElementById("paneEvd").classList.toggle("active", tab==="evd");
+}
+
+function showEvidenceDetail(qa, src, idx, evKey, plan){
+  var items = plan ? plan.items : qa.items;
+  var it = items[src][idx];
+  var d = EV_DETAIL[evKey || (qa.id+"-"+src+"-"+idx)] || GUIDE_EV[evKey] || null;
+  var c = EV_COLORS[src];
+  var name = EV_NAMES[src];
+  var badge = it.k==="sup" ? "支撑" : (it.k==="atk" ? "攻击 / 否决" : "参考");
+  var badgeCls = it.k==="sup" ? "sup" : (it.k==="atk" ? "atk" : "ref");
+  var html = '<div class="evd-card"><div class="ed-head"><span class="ed-tag" style="background:'+c+'"></span><span class="ed-name">'+name+'</span><span class="ed-badge '+badgeCls+'">'+badge+'</span></div><div class="ed-body">';
+  html += '<div class="ed-title">'+esc(it.t)+'</div>';
+  html += '<div class="ed-content">'+(d ? esc(d.content) : "（该论据为演示占位，未配置详细内容。）")+'</div>';
+  html += '<div class="ed-meta"><span>证据强度：'+(d ? esc(d.strength) : "演示")+'</span><span>提取时间：'+(d ? (d.time||"-") : "-")+'</span><span>来源节点：'+name+'</span></div>';
+  if(d && d.links && d.links.length){
+    html += '<div class="ed-sub">关联链接</div><div class="ed-links">';
+    for(var i=0;i<d.links.length;i++){
+      var l = d.links[i];
+      html += '<a class="ed-link" href="'+l.url+'" target="_blank" rel="noopener"><span class="ln-ic">链</span><span class="ln-t">'+esc(l.label)+'<span class="ln-u">'+l.url+'</span></span><span class="ln-go">↗</span></a>';
+    }
+    html += '</div>';
+  }
+  if(d && d.shot){
+    html += '<div class="ed-sub">证据快照</div>'+d.shot;
+  }
+  html += '</div></div>';
+  document.getElementById("evdBody").innerHTML = html;
+  document.getElementById("evdEmpty").style.display = "none";
+  switchSideTab("evd");
+  if(window.innerWidth<=900){
+    var side = document.querySelector(".side");
+    if(side) side.scrollIntoView({behavior:"smooth", block:"start"});
+  }
+}
+
+function renderExamples(){
+  document.getElementById("examples").innerHTML = QAS.map(function(q, i){
+    return '<button class="ex-chip" data-i="'+i+'">'+(i===0?"示例 1 · 调整方案":(i===1?"示例 2 · 费用顾虑":(i===2?"示例 3 · 感染史禁忌":"示例 4 · 晕针")))+'</button>';
+  }).join("");
+  var area = document.getElementById("examples");
+  area.querySelectorAll(".ex-chip").forEach(function(b){
+    b.addEventListener("click", function(){
+      var qa = QAS[parseInt(b.getAttribute("data-i"),10)];
+      sendQa(qa, true);
+    });
+  });
+}
+
+function sendQa(qa, scrollToEnd){
+  var area = document.getElementById("msgArea");
+  var now = new Date();
+  var tm = ("0"+now.getHours()).slice(-2)+":"+("0"+now.getMinutes()).slice(-2);
+  var userMsg = '<div class="msg user"><div class="ava">医</div><div class="bubble"><div class="m-meta"><span class="who">医生</span><span class="tm">'+tm+'</span></div>'+esc(qa.q)+'</div></div>';
+  area.insertAdjacentHTML("beforeend", userMsg);
+  var aiEl = document.createElement("div");
+  aiEl.innerHTML = renderAiCard(qa);
+  var aiNode = aiEl.firstElementChild;
+  area.appendChild(aiNode);
+  /* 方案行：点击展开/收起该方案论据分布（手风琴） */
+  var optRows = aiNode.querySelectorAll(".plan-row");
+  for(var r=0;r<optRows.length;r++){
+    (function(row){
+      row.addEventListener("click", function(){
+        var no = row.getAttribute("data-opt");
+        var panel = aiNode.querySelector('.opt-ev[data-opt="'+no+'"]');
+        var willOpen = !panel.classList.contains("open");
+        var allRows = aiNode.querySelectorAll(".plan-row");
+        var allPanels = aiNode.querySelectorAll(".opt-ev");
+        for(var x=0;x<allRows.length;x++){ allRows[x].classList.remove("open"); }
+        for(var y=0;y<allPanels.length;y++){ allPanels[y].classList.remove("open"); }
+        if(willOpen){ panel.classList.add("open"); row.classList.add("open"); }
+      });
+    })(optRows[r]);
+  }
+  /* 来源入口：点击展开/收起对应论据列表（按作用域手风琴） */
+  var srcBtns = aiNode.querySelectorAll(".ev-src-btn");
+  for(var s=0;s<srcBtns.length;s++){
+    (function(btn){
+      btn.addEventListener("click", function(){
+        var k = btn.getAttribute("data-src");
+        var scope = btn.getAttribute("data-scope");
+        var list = aiNode.querySelector('.ev-list[data-scope="'+scope+'"][data-src="'+k+'"]');
+        var willOpen = !list.classList.contains("open");
+        var scBtns = aiNode.querySelectorAll('.ev-src-btn[data-scope="'+scope+'"]');
+        var scLists = aiNode.querySelectorAll('.ev-list[data-scope="'+scope+'"]');
+        for(var b=0;b<scBtns.length;b++){ scBtns[b].classList.remove("open"); }
+        for(var l=0;l<scLists.length;l++){ scLists[l].classList.remove("open"); }
+        if(willOpen){ list.classList.add("open"); btn.classList.add("open"); }
+      });
+    })(srcBtns[s]);
+  }
+  /* 论据条目：点击进右侧详情（问答级或方案级） */
+  var items = aiNode.querySelectorAll(".ev-it");
+  for(var j=0;j<items.length;j++){
+    (function(li){
+      li.addEventListener("click", function(){
+        var scope = li.closest(".ev-list").getAttribute("data-scope");
+        var plan = null;
+        if(scope && scope.indexOf("opt-")===0){
+          var no = scope.slice(4);
+          plan = (qa.plans||[]).filter(function(p){ return p.no===no; })[0] || null;
+        }
+        showEvidenceDetail(qa, li.getAttribute("data-src"), parseInt(li.getAttribute("data-idx"),10), li.getAttribute("data-evk")||null, plan);
+      });
+    })(items[j]);
+  }
+  if(scrollToEnd!==false){
+    setTimeout(function(){ area.scrollTop = area.scrollHeight; }, 60);
+  }
+}
+
+function init(){
+  renderExamples();
+  sendQa(QAS[0], false);
+  var tabs = document.querySelectorAll(".side-tabs .st");
+  for(var t=0;t<tabs.length;t++){
+    (function(b){
+      if(!b.getAttribute("data-tab")) return; /* 折叠按钮无 data-tab，跳过 */
+      b.addEventListener("click", function(){ switchSideTab(b.getAttribute("data-tab")); });
+    })(tabs[t]);
+  }
+
+  /* 侧栏：拖拽调宽 + 折叠/展开（宽度记忆） */
+  var side = document.getElementById("sidePanel");
+  var resizer = document.getElementById("sideResizer");
+  var foldBtn = document.getElementById("sideFold");
+  var MINW = 250, MAXW = 520;
+  function setSideW(w){
+    w = Math.max(MINW, Math.min(MAXW, w));
+    side.style.width = w + "px";
+    try{ localStorage.setItem("sideW", String(w)); }catch(e){}
+  }
+  function setCollapsed(collapsed){
+    side.classList.toggle("collapsed", collapsed);
+    resizer.classList.toggle("collapsed", collapsed);
+    foldBtn.innerHTML = collapsed ? "»" : "«";
+    foldBtn.title = collapsed ? "展开右侧栏" : "收起右侧栏";
+  }
+  resizer.addEventListener("mousedown", function(e){
+    var collapsed = side.classList.contains("collapsed");
+    if(collapsed){ setCollapsed(false); return; } /* 点击把手展开 */
+    e.preventDefault();
+    var startX = e.clientX;
+    var startW = side.offsetWidth;
+    document.body.classList.add("resizing");
+    resizer.classList.add("active");
+    function move(ev){
+      /* 分隔条即侧栏左边缘：跟随鼠标位置（左拖变宽、右拖变窄） */
+      setSideW(startW + (startX - ev.clientX));
+    }
+    function up(){
+      document.body.classList.remove("resizing");
+      resizer.classList.remove("active");
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+    }
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+  });
+  foldBtn.addEventListener("click", function(){
+    setCollapsed(!side.classList.contains("collapsed"));
+  });
+  /* 恢复记忆宽度 */
+  try{
+    var saved = localStorage.getItem("sideW");
+    if(saved){ var w = parseInt(saved,10); if(w>=MINW && w<=MAXW) side.style.width = w+"px"; }
+  }catch(e){}
+  var input = document.getElementById("qaInput");
+  var btn = document.getElementById("sendBtn");
+  function submit(){
+    var v = input.value.trim();
+    if(!v) return;
+    var qa = {
+      q: v,
+      a: "（原型演示）该问题已进入 6 步辩论。当前为示例环境，请从上方示例问题中选择以查看完整解释图谱。",
+      plans: [],
+      tail: "",
+      ev: {lit:40, conv:33, net:27},
+      items: {
+        lit: [{t:"图谱论据节点（示例）", d:"支撑", k:"sup"}],
+        conv: [{t:"历史会话证据（示例）", d:"参考", k:"ref"}],
+        net: [{t:"评论论据节点（示例）", d:"支撑", k:"sup"}]
+      }
+    };
+    sendQa(qa, true);
+    input.value = "";
+    input.style.height = "auto";
+  }
+  btn.addEventListener("click", submit);
+  input.addEventListener("keydown", function(e){
+    if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); submit(); }
+  });
+  input.addEventListener("input", function(){
+    this.style.height = "auto";
+    this.style.height = Math.min(this.scrollHeight, 120) + "px";
+  });
+}
+init();
+</script>
+</body>
+</html>

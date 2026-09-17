@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>循证知识图谱 · 数据浏览器</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230A211C'/%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%2314B8A6' stroke-width='3.5'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%2314B8A6'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@300;400;500;600&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+/* ============================================================
+   设计 token（与 index.html / doctor.html 保持一致）
+   ============================================================ */
+:root{
+  --bg:#F4F6F2; --bg-2:#EDF1EC; --ink:#182620; --ink-2:#3E4F47; --muted:#6B7A72;
+  --line:#DCE3DD; --paper:#FFFFFF; --dark:#0A211C; --dark-2:#0E2B24;
+  --teal:#0F766E; --teal-2:#14B8A6; --teal-3:#5EEAD4; --guide:#0E9F6E;
+  --lit:#1D6FD1; --pat:#E8871E; --fb:#D64545; --ok:#15803D;
+  --serif:"Noto Serif SC","Songti SC","STSong",Georgia,serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --shadow:0 1px 2px rgba(10,33,28,.06),0 8px 28px rgba(10,33,28,.07);
+  --r:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1.7;font-size:15px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 26px}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+::selection{background:rgba(20,184,166,.22)}
+
+/* ---- 顶栏 ---- */
+.topnav{position:fixed;top:0;left:0;right:0;z-index:60;background:rgba(10,33,28,.94);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.08)}
+.topnav .wrap{display:flex;align-items:center;gap:26px;height:60px}
+.brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:600;font-size:14.5px;white-space:nowrap}
+.nav-links{display:flex;gap:4px;margin-left:auto;align-items:center}
+.nav-links a{color:rgba(255,255,255,.72);font-size:13px;padding:7px 12px;border-radius:8px;transition:.2s;white-space:nowrap}
+.nav-links a:hover{color:#fff;background:rgba(255,255,255,.08)}
+.nav-links a.active{color:#5EEAD4;background:rgba(20,184,166,.14)}
+.nav-tag{font-size:11px;color:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:2px 9px;letter-spacing:.08em;margin-right:6px;white-space:nowrap}
+
+/* ---- Hero ---- */
+.hero{background:radial-gradient(1000px 480px at 80% -10%,rgba(20,184,166,.16),transparent 60%),radial-gradient(800px 420px at 6% 110%,rgba(14,159,110,.12),transparent 55%),var(--dark);color:#fff;padding:118px 0 58px}
+.hero .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.16em;color:var(--teal-3);font-weight:500}
+h1.hero-title{font-family:var(--serif);font-weight:900;font-size:clamp(28px,3.6vw,44px);line-height:1.24;margin:14px 0 12px}
+h1.hero-title .hl{color:var(--teal-3)}
+.hero-sub{color:rgba(255,255,255,.64);font-size:15px;max-width:620px;font-weight:300}
+.hero-stats{display:flex;flex-wrap:wrap;margin-top:30px;border-top:1px solid rgba(255,255,255,.12)}
+.hero-stats .hs{flex:1;min-width:130px;padding:16px 18px 2px 0;margin-right:24px}
+.hs .num{font-family:var(--serif);font-weight:900;font-size:28px;color:#fff;line-height:1.1}
+.hs .num em{font-style:normal;color:var(--teal-3);font-size:17px}
+.hs .lab{font-size:11.5px;color:rgba(255,255,255,.5);margin-top:2px;letter-spacing:.04em}
+.src-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px;font-size:12px}
+.src-chips .sc{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:99px;padding:4px 12px;color:rgba(255,255,255,.78)}
+.src-chips .sc b{color:var(--teal-3);font-weight:600}
+.src-chips .sc.ok{border-color:rgba(74,222,128,.4);color:#A7F3D0}
+.src-chips .sc.err{border-color:rgba(248,113,113,.5);color:#FCA5A5}
+
+/* ---- 章节 ---- */
+.stage{padding:54px 0 70px}
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:20px;flex-wrap:wrap}
+h2.sec-title{font-family:var(--serif);font-weight:900;font-size:24px}
+.sec-head .sub{font-size:12.5px;color:var(--muted)}
+
+/* ---- 标签页 ---- */
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:22px}
+.tab-btn{background:none;border:none;font-size:14.5px;font-weight:600;color:var(--muted);padding:11px 18px 12px;border-bottom:2.5px solid transparent;transition:.18s}
+.tab-btn:hover{color:var(--ink)}
+.tab-btn.active{color:var(--teal);border-color:var(--teal-2)}
+.tab-btn .n{font-size:11px;background:rgba(15,118,110,.1);color:var(--teal);border-radius:99px;padding:1px 8px;margin-left:5px}
+.panel{display:none}
+.panel.active{display:block}
+
+/* ---- 工具栏 ---- */
+.toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.search{flex:1;min-width:220px;display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:0 14px;height:40px}
+.search input{border:none;outline:none;flex:1;font-size:13.5px;font-family:inherit;color:var(--ink);background:transparent}
+.search .ic{color:var(--muted);font-size:13px}
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{font-size:12px;color:var(--ink-2);background:var(--paper);border:1px solid var(--line);border-radius:99px;padding:4px 12px;transition:.15s}
+.chip:hover{border-color:var(--teal-2);color:var(--teal)}
+.chip.active{background:var(--teal);border-color:var(--teal);color:#fff}
+.chip .c{font-size:10.5px;opacity:.75;margin-left:3px}
+
+/* ---- 论据框架卡片 ---- */
+.gf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:18px}
+.gf-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.gf-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.gf-key{flex:none;font-family:Consolas,monospace;font-size:11.5px;color:#fff;background:var(--dark);border-radius:7px;padding:3px 9px;letter-spacing:.03em}
+.gf-sc{font-size:13px;font-weight:700;color:var(--ink)}
+.gf-sc i{font-style:normal;font-size:10.5px;color:var(--muted);font-weight:400;margin-left:6px}
+.gf-grade{margin-left:auto;font-size:11.5px;font-weight:700;color:#0E7490;background:rgba(14,116,144,.1);border:1px solid rgba(14,116,144,.25);border-radius:99px;padding:2px 11px}
+.gf-claim{font-size:14px;color:var(--ink-2);line-height:1.85;background:var(--bg);border-left:3px solid var(--teal-2);border-radius:0 9px 9px 0;padding:11px 15px}
+.gf-meta{display:flex;flex-wrap:wrap;gap:6px;font-size:11.5px;color:var(--muted)}
+.gf-meta .mk{background:var(--bg-2);border:1px solid var(--line);border-radius:7px;padding:2px 9px}
+.gf-meta .mk b{color:var(--ink-2);font-weight:600}
+.gf-tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:11px;color:var(--teal);background:rgba(15,118,110,.08);border:1px solid rgba(15,118,110,.22);border-radius:7px;padding:2px 9px}
+.tag.orange{color:#B45309;background:rgba(232,135,30,.08);border-color:rgba(232,135,30,.28)}
+.tag.gray{color:var(--muted);background:var(--bg-2);border-color:var(--line)}
+.gf-trig{font-size:12.5px;color:var(--ink-2);background:var(--bg);border:1px dashed var(--line);border-radius:9px;padding:9px 13px}
+.gf-trig b{color:var(--teal);font-weight:600}
+.gf-details{display:flex;flex-direction:column;gap:8px}
+.gf-details details{border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--paper)}
+.gf-details summary{cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ink-2);padding:9px 13px;background:var(--bg);list-style:none;display:flex;align-items:center;gap:7px}
+.gf-details summary::before{content:"▸";color:var(--teal-2);transition:.15s;font-size:11px}
+.gf-details details[open] summary::before{transform:rotate(90deg)}
+.gf-details .d-body{padding:10px 13px 12px;font-size:12.5px;color:var(--ink-2);display:flex;flex-direction:column;gap:7px}
+.gf-details .d-body .it{display:flex;gap:8px;align-items:flex-start}
+.gf-details .d-body .it .no{flex:none;color:var(--teal);font-family:Consolas,monospace;font-size:11px;padding-top:2px}
+.raw-text{font-family:Consolas,monospace;font-size:11px;color:#4B5563;background:#F8FAF8;border:1px solid var(--line);border-radius:7px;padding:9px 11px;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow-y:auto}
+
+/* ---- 患者讨论卡片 ---- */
+.th-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:18px}
+.th-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.th-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.th-id{flex:none;font-family:Consolas,monospace;font-size:11px;color:var(--pat);background:rgba(232,135,30,.1);border:1px solid rgba(232,135,30,.3);border-radius:6px;padding:2px 8px}
+.th-plat{flex:none;font-size:11px;color:#7C2D12;background:#FFEDD5;border:1px solid #FED7AA;border-radius:99px;padding:2px 10px}
+.th-plat.zhihu{color:#1E3A8A;background:#DBEAFE;border-color:#BFDBFE}
+.th-sc{font-size:11.5px;color:var(--teal);background:rgba(15,118,110,.08);border:1px solid rgba(15,118,110,.22);border-radius:99px;padding:2px 10px}
+.th-title{font-family:var(--serif);font-weight:700;font-size:16.5px;color:var(--ink);line-height:1.5}
+.th-author{font-size:12px;color:var(--muted)}
+.th-author b{color:var(--ink-2);font-weight:600}
+.th-main{font-size:13.5px;color:var(--ink-2);line-height:1.85;background:var(--bg);border-left:3px solid var(--pat);border-radius:0 9px 9px 0;padding:11px 15px}
+.replies{margin-top:2px;border-top:1px dashed var(--line);padding-top:10px}
+.reply{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.reply:last-child{border-bottom:none}
+.reply .r-who{flex:none;width:86px;font-weight:600;color:var(--teal);font-size:12px;padding-top:2px}
+.reply .r-txt{color:var(--ink-2);line-height:1.8}
+
+/* ---- 图表区 ---- */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.chart-box{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px 16px 8px}
+.chart-box h3{font-size:14.5px;font-weight:700;margin-bottom:2px}
+.chart-box .cap{font-size:11.5px;color:var(--muted);margin-bottom:10px}
+.chart-canvas{width:100%}
+.note-line{font-size:12px;color:var(--muted);margin-top:14px}
+
+/* ---- 数据流示意 ---- */
+.flow-sec{margin-top:44px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:22px 24px}
+.flow-sec h3{font-size:15px;font-weight:700;margin-bottom:4px}
+.flow-sec .cap{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+.flow-svg{width:100%;height:auto;display:block}
+.flow-node{fill:#F0F7F4;stroke:#0F766E;stroke-width:1.4;rx:10}
+.flow-node.dark{fill:var(--dark);stroke:var(--dark)}
+.flow-txt{font-family:var(--sans);font-size:12.5px;fill:var(--ink)}
+.flow-txt.dark{fill:#fff}
+.flow-sub{font-family:var(--sans);font-size:10.5px;fill:var(--muted)}
+.flow-arrow{stroke:#14B8A6;stroke-width:1.8;fill:none;marker-end:url(#arr)}
+.flow-lbl{font-family:var(--sans);font-size:10.5px;fill:#0F766E}
+
+/* ---- 加载失败横幅 ---- */
+.warn-banner{display:none;background:#FDE8E8;border:1px solid #F3C1C1;color:#7F1D1D;border-radius:12px;padding:13px 17px;font-size:13px;line-height:1.8;margin-bottom:18px}
+.warn-banner b{font-weight:700}
+.empty-tip{padding:60px 0;text-align:center;color:var(--muted);font-size:14px}
+
+/* ---- 页脚 ---- */
+.footer{border-top:1px solid var(--line);padding:26px 0 40px;color:var(--muted);font-size:12px}
+.footer .wrap{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+
+@media (max-width:960px){
+  .gf-grid,.th-grid{grid-template-columns:1fr}
+  .chart-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#14B8A6" stroke-width="1.6"/><circle cx="12" cy="12" r="3.2" fill="#14B8A6"/><path d="M12 5.5v-2.6M12 21v-2.6M5.5 12H2.9M21 12h-2.6" stroke="#5EEAD4" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <span>循证知识图谱</span>
+    </a>
+    <div class="nav-links">
+      <span class="nav-tag">数据浏览器</span>
+      <a href="index.html">系统总览</a>
+      <a href="doctor.html">医生端</a>
+      <a href="数据浏览.html" class="active">数据浏览</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">JSON 数据动态加载 · 本地演示</span>
+    <h1 class="hero-title">循证知识图谱 · <span class="hl">数据浏览器</span></h1>
+    <div class="hero-sub">本页通过 <b>fetch()</b> 直接读取「json文件」目录下的两份 JSON 数据集，并实时渲染成可筛选、可检索、可统计的界面。改 JSON → 刷新页面即可看到新数据。</div>
+    <div class="hero-stats">
+      <div class="hs"><div class="num" id="stFrames">–</div><div class="lab">指南论据框架（条）</div></div>
+      <div class="hs"><div class="num" id="stThreads">–</div><div class="lab">论坛主题（个）</div></div>
+      <div class="hs"><div class="num" id="stComments">–</div><div class="lab">患者评论（条）</div></div>
+      <div class="hs"><div class="num" id="stScenes">–</div><div class="lab">覆盖临床场景（个）</div></div>
+    </div>
+    <div class="src-chips">
+      <span class="sc" id="srcG">⏳ guideline_frames.json 加载中…</span>
+      <span class="sc" id="srcC">⏳ diabetes_comments_dataset.json 加载中…</span>
+    </div>
+  </div>
+</header>
+
+<main class="stage">
+  <div class="wrap">
+
+    <div class="warn-banner" id="warnBanner"></div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="frames">指南论据框架<span class="n" id="tabN1">–</span></button>
+      <button class="tab-btn" data-tab="threads">患者论坛讨论<span class="n" id="tabN2">–</span></button>
+      <button class="tab-btn" data-tab="charts">数据可视化</button>
+    </div>
+
+    <!-- ============ 论据框架 ============ -->
+    <section class="panel active" id="panelFrames">
+      <div class="toolbar">
+        <div class="search"><span class="ic">⌕</span><input id="kwFrames" type="text" placeholder="搜索结论、场景、原始文本…"></div>
+        <div class="chips" id="chipsFrames"></div>
+      </div>
+      <div class="gf-grid" id="gridFrames"></div>
+      <div class="empty-tip" id="emptyFrames" style="display:none">没有匹配的论据框架，换个关键词试试。</div>
+    </section>
+
+    <!-- ============ 患者讨论 ============ -->
+    <section class="panel" id="panelThreads">
+      <div class="toolbar">
+        <div class="search"><span class="ic">⌕</span><input id="kwThreads" type="text" placeholder="搜索标题、主帖、回复内容…"></div>
+        <div class="chips" id="chipsThreads"></div>
+      </div>
+      <div class="th-grid" id="gridThreads"></div>
+      <div class="empty-tip" id="emptyThreads" style="display:none">没有匹配的讨论主题，换个关键词试试。</div>
+    </section>
+
+    <!-- ============ 数据可视化 ============ -->
+    <section class="panel" id="panelCharts">
+      <div class="sec-head">
+        <h2 class="sec-title">数据分布一览</h2>
+        <span class="sub">全部统计在页面加载时由两份 JSON 实时计算，未写死任何数字</span>
+      </div>
+      <div class="chart-grid">
+        <div class="chart-box">
+          <h3>指南论据 × 临床场景</h3>
+          <div class="cap">guideline_frames.json · 按 clinical_scenario 分组统计</div>
+          <div class="chart-canvas" id="cFrames" style="height:560px"></div>
+        </div>
+        <div class="chart-box">
+          <h3>患者讨论 × 临床场景</h3>
+          <div class="cap">diabetes_comments_dataset.json · 按场景统计发言数（主帖 + 回复）</div>
+          <div class="chart-canvas" id="cThreads" style="height:560px"></div>
+        </div>
+        <div class="chart-box">
+          <h3>证据等级分布</h3>
+          <div class="cap">guideline_frames.json · evidence_strength.level</div>
+          <div class="chart-canvas" id="cGrade" style="height:340px"></div>
+        </div>
+        <div class="chart-box">
+          <h3>讨论平台分布</h3>
+          <div class="cap">diabetes_comments_dataset.json · source_platform</div>
+          <div class="chart-canvas" id="cPlat" style="height:340px"></div>
+        </div>
+      </div>
+
+      <div class="flow-sec">
+        <h3>本页数据加载流程（示意）</h3>
+        <div class="cap">左侧为静态示意，右侧为动态实现：两份 JSON → fetch() → JS 对象 → 渲染函数 → 页面</div>
+        <svg class="flow-svg" viewBox="0 0 1080 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="JSON数据加载到页面渲染的流程示意">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#14B8A6"/></marker>
+          </defs>
+          <!-- 数据源 -->
+          <rect class="flow-node dark" x="30" y="30" width="250" height="62"/>
+          <text class="flow-txt dark" x="155" y="56" text-anchor="middle" font-weight="600">json文件/</text>
+          <text class="flow-txt dark" x="155" y="76" text-anchor="middle">guideline_frames.json</text>
+          <rect class="flow-node dark" x="30" y="118" width="250" height="62"/>
+          <text class="flow-txt dark" x="155" y="144" text-anchor="middle">json文件/</text>
+          <text class="flow-txt dark" x="155" y="164" text-anchor="middle">diabetes_comments_dataset.json</text>
+          <!-- 箭头1 -->
+          <line class="flow-arrow" x1="280" y1="61" x2="400" y2="61"/>
+          <text class="flow-lbl" x="315" y="52">fetch()</text>
+          <line class="flow-arrow" x1="280" y1="149" x2="400" y2="149"/>
+          <text class="flow-lbl" x="315" y="140">fetch()</text>
+          <!-- JS对象 -->
+          <rect class="flow-node" x="400" y="42" width="190" height="118"/>
+          <text class="flow-txt" x="495" y="76" text-anchor="middle" font-weight="600">JS 数据对象</text>
+          <text class="flow-txt" x="495" y="98" text-anchor="middle">STATE.frames[27]</text>
+          <text class="flow-txt" x="495" y="120" text-anchor="middle">STATE.threads[12]</text>
+          <text class="flow-sub" x="495" y="142" text-anchor="middle">JSON.parse 自动完成</text>
+          <!-- 箭头2 -->
+          <line class="flow-arrow" x1="590" y1="101" x2="710" y2="101"/>
+          <text class="flow-lbl" x="628" y="92">渲染函数</text>
+          <!-- 渲染 -->
+          <rect class="flow-node" x="710" y="42" width="200" height="118"/>
+          <text class="flow-txt" x="810" y="76" text-anchor="middle" font-weight="600">DOM 渲染</text>
+          <text class="flow-txt" x="810" y="98" text-anchor="middle">论据卡片 / 讨论卡片</text>
+          <text class="flow-txt" x="810" y="120" text-anchor="middle">筛选 · 搜索 · 图表</text>
+          <!-- 箭头3 -->
+          <line class="flow-arrow" x1="910" y1="101" x2="1010" y2="101"/>
+          <text class="flow-lbl" x="942" y="92">innerHTML</text>
+          <!-- 页面 -->
+          <rect class="flow-node dark" x="1010" y="52" width="60" height="98"/>
+          <text class="flow-txt dark" x="1040" y="90" text-anchor="middle" font-size="11">浏览器</text>
+          <text class="flow-txt dark" x="1040" y="110" text-anchor="middle" font-size="11">页面</text>
+        </svg>
+        <div class="note-line">实现要点：① 两份 JSON 与 HTML 处于同一目录下（子目录「json文件」）；② 用 fetch(相对路径) 读取；③ 拿到 JS 对象后交给各自的渲染函数；④ 浏览器安全限制：file:// 双击打开时 fetch 会被拦截，须用本地服务器访问（见「启动页面.bat」）。</div>
+      </div>
+
+      <div class="note-line">数据口径：以上统计均由页面在加载时从两份 JSON 实时计算，来源与结构见「使用说明.md」。</div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>循证知识图谱 · 医智图前端设计</span>
+    <span>JSON 数据源：json文件/guideline_frames.json · json文件/diabetes_comments_dataset.json</span>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   数据浏览 · 从两份 JSON 动态加载并渲染
+   （本页所有数字均由数据实时计算，不写死）
+   ============================================================ */
+var STATE = {
+  frames: [],        /* guideline_frames.json 数组 */
+  threads: [],       /* diabetes_comments_dataset.json 的 threads 数组 */
+  meta: null,
+  frameSc: "all",    /* 论据场景筛选 */
+  threadSc: "all",   /* 讨论场景筛选 */
+  threadPlat: "all", /* 讨论平台筛选 */
+  kwF: "", kwT: ""
+};
+
+/* ---- 英文枚举 → 中文标签（仅用于界面展示） ---- */
+var SCENARIO_CN = {
+  glycemic_target: "血糖控制目标", drug_selection: "药物选择",
+  monitoring_education: "监测与患者教育", treatment_optimization: "治疗优化",
+  treatment_initiation: "治疗起始", treatment_avoidance: "避免使用的方案",
+  treatment_transition: "治疗转换", treatment_initiation_and_continuation: "治疗起始与延续",
+  treatment_intensification: "治疗强化", comorbidity_management: "合并症管理",
+  complication_prevention: "并发症预防", technology_use: "技术设备使用",
+  nutrition_management: "营养管理",
+  glycemic_management_during_nutritional_support: "营养支持期间的血糖管理",
+  glycemic_management_during_glucocorticoid_therapy: "糖皮质激素治疗期间的血糖管理",
+  perioperative_glycemic_management: "围手术期血糖管理"
+};
+var DISEASE_CN = {
+  T1DM: "1型糖尿病", T2DM: "2型糖尿病", type_2_diabetes: "2型糖尿病", diabetes: "糖尿病",
+  diabetic_ketoacidosis: "糖尿病酮症酸中毒", hyperglycemia: "高血糖",
+  newly_diagnosed_diabetes: "新诊断糖尿病", prediabetes: "糖尿病前期",
+  stress_hyperglycemia: "应激性高血糖"
+};
+var COMORB_CN = {
+  hypoglycemia: "低血糖", heart_failure: "心力衰竭", DKA: "糖尿病酮症酸中毒", HHS: "高渗高血糖状态",
+  critical_illness: "危重症", "cardiovascular disease": "心血管疾病", cardiovascular_disease: "心血管疾病",
+  CVD: "心血管疾病", infection: "感染", infections: "感染", stress_hyperglycemia: "应激性高血糖",
+  autonomic_neuropathy: "自主神经病变"
+};
+var CARE_CN = {
+  inpatient: "住院", inpatient_general: "住院（普通病房）", inpatient_icu: "住院（ICU）",
+  inpatient_nonicu: "住院（非ICU）", inpatient_perioperative: "住院（围手术期）", perioperative: "围手术期"
+};
+var TREAT_CN = {
+  mixed: "混合人群", on_enteral_nutrition: "肠内营养", on_glucocorticoid: "使用糖皮质激素",
+  on_insulin: "使用胰岛素", on_insulin_pump_or_multiple_daily_injections: "胰岛素泵或多针注射",
+  on_intensive_insulin_therapy: "强化胰岛素治疗", on_intravenous_insulin: "静脉胰岛素",
+  on_nutritional_support: "营养支持", on_oral_agent_or_insulin: "口服药或胰岛素",
+  on_prandial_insulin: "餐时胰岛素", receiving_glucocorticoid_therapy: "接受糖皮质激素治疗",
+  unknown: "未知"
+};
+var LEVEL_CN = { recommended: "推荐", strongly_recommended: "强烈推荐", suggested: "建议（弱推荐）" };
+var QUALITY_CN = { high: "质量：高", medium: "质量：中", low: "质量：低" };
+
+function cn(map, key){ return (map && map[key]) || key; }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* ---- 加载 ---- */
+function markSrc(id, cls, text){
+  var el = document.getElementById(id);
+  if(el){ el.className = "sc " + cls; el.textContent = text; }
+}
+function loadAll(){
+  var p1 = fetch("json文件/guideline_frames.json", {cache:"no-store"})
+    .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function(d){ STATE.frames = Array.isArray(d) ? d : []; markSrc("srcG","ok","✓ guideline_frames.json 已加载 " + STATE.frames.length + " 条"); return STATE.frames; })
+    .catch(function(e){ markSrc("srcG","err","✗ guideline_frames.json 加载失败：" + e.message); showWarn(); return []; });
+  var p2 = fetch("json文件/diabetes_comments_dataset.json", {cache:"no-store"})
+    .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function(d){ STATE.threads = (d && d.threads) || []; STATE.meta = (d && d.metadata) || null; markSrc("srcC","ok","✓ diabetes_comments_dataset.json 已加载 " + STATE.threads.length + " 个主题"); return STATE.threads; })
+    .catch(function(e){ markSrc("srcC","err","✗ diabetes_comments_dataset.json 加载失败：" + e.message); showWarn(); return []; });
+  Promise.all([p1, p2]).then(function(){
+    renderStats();
+    renderFrameChips(); renderThreadChips();
+    renderFrames(); renderThreads();
+    initCharts();
+  });
+}
+function showWarn(){
+  var box = document.getElementById("warnBanner");
+  box.style.display = "block";
+  box.innerHTML = "<b>JSON 未能加载。</b>直接双击 HTML 文件时，浏览器会拦截网页读取本地 JSON（file:// 安全限制）。请双击文件夹里的「<b>启动页面.bat</b>」，或用命令 <code>python -m http.server 8000</code> 启动本地服务器后访问 <b>http://localhost:8000/数据浏览.html</b>。";
+}
+
+/* ---- 顶部统计 ---- */
+function renderStats(){
+  var nFrames = STATE.frames.length;
+  var nThreads = STATE.threads.length;
+  var nComments = STATE.threads.reduce(function(s,t){ return s + (t.replies||[]).length; }, 0);
+  var scenes = {};
+  STATE.frames.forEach(function(f){ scenes[f.clinical_scenario] = 1; });
+  var nScenes = Object.keys(scenes).length;
+  document.getElementById("stFrames").innerHTML = nFrames + "<em> 条</em>";
+  document.getElementById("stThreads").innerHTML = nThreads + "<em> 个</em>";
+  document.getElementById("stComments").innerHTML = nComments + "<em> 条</em>";
+  document.getElementById("stScenes").innerHTML = nScenes + "<em> 个</em>";
+  document.getElementById("tabN1").textContent = nFrames;
+  document.getElementById("tabN2").textContent = nThreads;
+}
+
+/* ---- 筛选条 ---- */
+function renderFrameChips(){
+  var map = {};
+  STATE.frames.forEach(function(f){
+    var k = f.clinical_scenario || "unknown";
+    map[k] = (map[k] || 0) + 1;
+  });
+  var html = '<button class="chip active" data-sc="all">全部<span class="c">' + STATE.frames.length + '</span></button>';
+  Object.keys(map).sort().forEach(function(k){
+    html += '<button class="chip" data-sc="' + esc(k) + '">' + esc(cn(SCENARIO_CN, k)) + '<span class="c">' + map[k] + '</span></button>';
+  });
+  var box = document.getElementById("chipsFrames");
+  box.innerHTML = html;
+  box.querySelectorAll(".chip").forEach(function(b){
+    b.addEventListener("click", function(){
+      STATE.frameSc = b.getAttribute("data-sc");
+      box.querySelectorAll(".chip").forEach(function(x){ x.classList.toggle("active", x===b); });
+      renderFrames();
+    });
+  });
+}
+function renderThreadChips(){
+  var pmap = {};
+  STATE.threads.forEach(function(t){ pmap[t.source_platform || "未知"] = (pmap[t.source_platform || "未知"] || 0) + 1; });
+  var smap = {};
+  STATE.threads.forEach(function(t){ smap[t.clinical_scenario || "未知"] = (smap[t.clinical_scenario || "未知"] || 0) + 1; });
+  var html = '<button class="chip active" data-k="p" data-v="all">全部平台<span class="c">' + STATE.threads.length + '</span></button>';
+  Object.keys(pmap).forEach(function(k){
+    html += '<button class="chip" data-k="p" data-v="' + esc(k) + '">' + esc(k) + '<span class="c">' + pmap[k] + '</span></button>';
+  });
+  html += '<button class="chip active" data-k="s" data-v="all">全部场景</button>';
+  Object.keys(smap).forEach(function(k){
+    html += '<button class="chip" data-k="s" data-v="' + esc(k) + '">' + esc(k) + '<span class="c">' + smap[k] + '</span></button>';
+  });
+  var box = document.getElementById("chipsThreads");
+  box.innerHTML = html;
+  box.querySelectorAll(".chip").forEach(function(b){
+    b.addEventListener("click", function(){
+      var k = b.getAttribute("data-k"), v = b.getAttribute("data-v");
+      if(k === "p"){ STATE.threadPlat = v; }
+      else { STATE.threadSc = v; }
+      box.querySelectorAll('.chip[data-k="' + k + '"]').forEach(function(x){ x.classList.toggle("active", x===b); });
+      renderThreads();
+    });
+  });
+}
+
+/* ---- 论据卡片渲染 ---- */
+function renderFrames(){
+  var kw = STATE.kwF.toLowerCase();
+  var list = STATE.frames.filter(function(f, i){
+    if(STATE.frameSc !== "all" && f.clinical_scenario !== STATE.frameSc) return false;
+    if(!kw) return true;
+    var blob = ((f.claim||"") + " " + (f.scenario_detail||"") + " " + (f.original_text||"") + " gf-" + i).toLowerCase();
+    return blob.indexOf(kw) >= 0;
+  });
+  var grid = document.getElementById("gridFrames");
+  grid.innerHTML = list.map(function(f, idx){
+    var i = STATE.frames.indexOf(f);
+    var st = f.evidence_strength || {};
+    var pop = f.target_population || {};
+    var tags = [];
+    (pop.disease||[]).forEach(function(d){ tags.push(esc(cn(DISEASE_CN, d))); });
+    (pop.comorbidities||[]).forEach(function(c){ tags.push(esc(cn(COMORB_CN, c))); });
+    if(pop.care_setting){ tags.push(esc(cn(CARE_CN, pop.care_setting))); }
+    if(pop.treatment_status){ tags.push(esc(cn(TREAT_CN, pop.treatment_status))); }
+    if(pop.pregnancy === "not_applicable"){ tags.push("妊娠：不适用"); }
+    var caveats = (f.caveats||[]).map(function(c){ return c.content; }).filter(function(s){ return s; });
+    var rationales = (f.rationale||[]).map(function(r){ return r.content; }).filter(function(s){ return s; });
+    var triggers = (f.trigger_conditions || {}).items || [];
+    return '<div class="gf-card">' +
+      '<div class="gf-head"><span class="gf-key">gf-' + i + '</span>' +
+        '<span class="gf-sc">' + esc(cn(SCENARIO_CN, f.clinical_scenario)) + '<i>' + esc(f.clinical_scenario) + '</i></span>' +
+        '<span class="gf-grade">' + esc(cn(LEVEL_CN, st.level) || "—") + (st.grade ? " · " + esc(st.grade) : "") + '</span></div>' +
+      '<div class="gf-claim">' + esc(f.claim || f.original_text || "（无结论摘要）") + '</div>' +
+      '<div class="gf-meta">' +
+        '<span class="mk">证据来源：<b>' + esc((st.sources||[]).join("、") || f.source_type || "—") + '</b></span>' +
+        '<span class="mk">框架类型：<b>' + esc(f.frame_type || "—") + '</b></span>' +
+        (f.quality && f.quality.overall ? '<span class="mk">' + esc(QUALITY_CN[f.quality.overall] || f.quality.overall) + '</span>' : '') +
+      '</div>' +
+      (tags.length ? '<div class="gf-tags">' + tags.map(function(t){ return '<span class="tag">' + t + '</span>'; }).join("") + '</div>' : '') +
+      '<div class="gf-trig"><b>触发条件：</b>' + esc((f.trigger_conditions||{}).summary || "—") + (triggers.length ? '（' + triggers.length + ' 项）' : '') + '</div>' +
+      '<div class="gf-details">' +
+        (triggers.length ? '<details><summary>触发条件明细（' + triggers.length + '）</summary><div class="d-body">' +
+          triggers.map(function(t, j){ return '<div class="it"><span class="no">' + (j+1) + '.</span><span>' + esc(t.type || "") + ' · ' + esc(t.description || t.state || "") + '</span></div>'; }).join("") +
+        '</div></details>' : '') +
+        (caveats.length ? '<details><summary>注意事项 / 适用边界（' + caveats.length + '）</summary><div class="d-body">' +
+          caveats.map(function(c, j){ return '<div class="it"><span class="no">' + (j+1) + '.</span><span>' + esc(c) + '</span></div>'; }).join("") +
+        '</div></details>' : '') +
+        (rationales.length ? '<details><summary>理由 / 依据（' + rationales.length + '）</summary><div class="d-body">' +
+          rationales.map(function(r, j){ return '<div class="it"><span class="no">' + (j+1) + '.</span><span>' + esc(r) + '</span></div>'; }).join("") +
+        '</div></details>' : '') +
+        (f.original_text ? '<details><summary>原始文本</summary><div class="d-body"><div class="raw-text">' + esc(f.original_text) + '</div></div></details>' : '') +
+      '</div>' +
+    '</div>';
+  }).join("");
+  document.getElementById("emptyFrames").style.display = list.length ? "none" : "block";
+  document.getElementById("gridFrames").style.display = list.length ? "grid" : "none";
+}
+
+/* ---- 讨论卡片渲染 ---- */
+function renderThreads(){
+  var kw = STATE.kwT.toLowerCase();
+  var list = STATE.threads.filter(function(t){
+    if(STATE.threadPlat !== "all" && t.source_platform !== STATE.threadPlat) return false;
+    if(STATE.threadSc !== "all" && t.clinical_scenario !== STATE.threadSc) return false;
+    if(!kw) return true;
+    var blob = ((t.title||"") + " " + (t.author||"") + " " + (t.main_post||"") + " " +
+      (t.replies||[]).map(function(r){ return r.author + " " + r.content; }).join(" ")).toLowerCase();
+    return blob.indexOf(kw) >= 0;
+  });
+  var grid = document.getElementById("gridThreads");
+  grid.innerHTML = list.map(function(t){
+    var reps = t.replies || [];
+    var platCls = t.source_platform === "知乎" ? "th-plat zhihu" : "th-plat";
+    return '<div class="th-card">' +
+      '<div class="th-head"><span class="th-id">' + esc(t.id) + '</span>' +
+        '<span class="' + platCls + '">' + esc(t.source_platform) + '</span>' +
+        '<span class="th-sc">' + esc(t.clinical_scenario) + '</span></div>' +
+      '<div class="th-title">' + esc(t.title) + '</div>' +
+      '<div class="th-author">楼主：<b>' + esc(t.author) + '</b> · ' + reps.length + ' 条回复</div>' +
+      '<div class="th-main">' + esc(t.main_post) + '</div>' +
+      (reps.length ? '<div class="replies"><details><summary style="cursor:pointer;font-size:12.5px;font-weight:600;color:var(--teal)">查看 ' + reps.length + ' 条回复 ▾</summary><div style="padding-top:6px">' +
+        reps.map(function(r){ return '<div class="reply"><span class="r-who">' + esc(r.author) + '</span><span class="r-txt">' + esc(r.content) + '</span></div>'; }).join("") +
+      '</div></details></div>' : '') +
+    '</div>';
+  }).join("");
+  document.getElementById("emptyThreads").style.display = list.length ? "none" : "block";
+  document.getElementById("gridThreads").style.display = list.length ? "grid" : "none";
+}
+
+/* ---- 图表 ---- */
+var charts = [];
+function chartOf(id, option){
+  var el = document.getElementById(id);
+  if(!el || !window.echarts) return null;
+  var c = echarts.init(el);
+  c.setOption(option);
+  charts.push(c);
+  return c;
+}
+function initCharts(){
+  /* 图1：指南论据 × 场景（横向柱） */
+  var m1 = {};
+  STATE.frames.forEach(function(f){ var k = f.clinical_scenario || "unknown"; m1[k] = (m1[k]||0) + 1; });
+  var d1 = Object.keys(m1).map(function(k){ return { name: cn(SCENARIO_CN, k), value: m1[k], key: k }; })
+    .sort(function(a,b){ return b.value - a.value; });
+  chartOf("cFrames", {
+    tooltip: { trigger: "axis", triggerOn: "mousemove|click", renderMode: "richText", confine: true },
+    grid: { left: 8, right: 40, top: 10, bottom: 8, containLabel: true },
+    xAxis: { type: "value", minInterval: 1 },
+    yAxis: { type: "category", data: d1.map(function(x){ return x.name; }), axisLabel: { fontSize: 11 } },
+    series: [{ type: "bar", data: d1.map(function(x){ return x.value; }), barMaxWidth: 20,
+      label: { show: true, position: "right", fontSize: 11 } }]
+  });
+  /* 图2：讨论 × 场景（横向柱，评论数） */
+  var m2 = {};
+  STATE.threads.forEach(function(t){ var k = t.clinical_scenario || "未知"; m2[k] = (m2[k]||0) + (t.replies||[]).length + 1; });
+  var d2 = Object.keys(m2).map(function(k){ return { name: k, value: m2[k] }; })
+    .sort(function(a,b){ return b.value - a.value; });
+  chartOf("cThreads", {
+    tooltip: { trigger: "axis", triggerOn: "mousemove|click", renderMode: "richText", confine: true },
+    grid: { left: 8, right: 40, top: 10, bottom: 8, containLabel: true },
+    xAxis: { type: "value", minInterval: 1 },
+    yAxis: { type: "category", data: d2.map(function(x){ return x.name; }), axisLabel: { fontSize: 11 } },
+    series: [{ type: "bar", data: d2.map(function(x){ return x.value; }), barMaxWidth: 20,
+      label: { show: true, position: "right", fontSize: 11 } }]
+  });
+  /* 图3：证据等级（饼） */
+  var m3 = {};
+  STATE.frames.forEach(function(f){ var lv = (f.evidence_strength||{}).level || "unmarked"; m3[lv] = (m3[lv]||0) + 1; });
+  var d3 = Object.keys(m3).map(function(k){
+    return { name: k === "unmarked" ? "未标注" : (LEVEL_CN[k] || k), value: m3[k] };
+  });
+  chartOf("cGrade", {
+    tooltip: { trigger: "item", triggerOn: "mousemove|click", renderMode: "richText", confine: true },
+    legend: { bottom: 0, icon: "circle", itemWidth: 12, itemHeight: 12, textStyle: { fontSize: 11 } },
+    series: [{ type: "pie", radius: ["38%", "66%"], center: ["50%", "44%"],
+      data: d3, label: { fontSize: 11 }, labelLine: { length: 10, length2: 8 } }]
+  });
+  /* 图4：平台分布（饼） */
+  var m4 = {};
+  STATE.threads.forEach(function(t){ var k = t.source_platform || "未知"; m4[k] = (m4[k]||0) + 1; });
+  var d4 = Object.keys(m4).map(function(k){ return { name: k, value: m4[k] }; });
+  chartOf("cPlat", {
+    tooltip: { trigger: "item", triggerOn: "mousemove|click", renderMode: "richText", confine: true },
+    legend: { bottom: 0, icon: "circle", itemWidth: 12, itemHeight: 12, textStyle: { fontSize: 11 } },
+    series: [{ type: "pie", radius: ["38%", "66%"], center: ["50%", "44%"],
+      data: d4, label: { fontSize: 11 }, labelLine: { length: 10, length2: 8 } }]
+  });
+}
+
+/* ---- 交互 ---- */
+document.querySelectorAll(".tab-btn").forEach(function(b){
+  b.addEventListener("click", function(){
+    document.querySelectorAll(".tab-btn").forEach(function(x){ x.classList.toggle("active", x===b); });
+    var tab = b.getAttribute("data-tab");
+    document.querySelectorAll(".panel").forEach(function(p){ p.classList.toggle("active", p.id === "panel" + tab[0].toUpperCase() + tab.slice(1)); });
+    if(tab === "charts"){ charts.forEach(function(c){ c.resize(); }); }
+  });
+});
+document.getElementById("kwFrames").addEventListener("input", function(){ STATE.kwF = this.value; renderFrames(); });
+document.getElementById("kwThreads").addEventListener("input", function(){ STATE.kwT = this.value; renderThreads(); });
+window.addEventListener("resize", function(){ charts.forEach(function(c){ c.resize(); }); });
+
+loadAll();
+</script>
+</body>
+</html>
